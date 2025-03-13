@@ -1,3 +1,1 @@
-pub struct Audio {
-
-}
+pub struct Audio {}

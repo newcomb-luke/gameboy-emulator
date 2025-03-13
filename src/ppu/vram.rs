@@ -4,14 +4,12 @@ use crate::cpu::bus::Bus;
 
 #[derive(Debug, Clone, Copy)]
 pub struct Tile {
-    data: [u8; 16]
+    data: [u8; 16],
 }
 
 impl Tile {
     pub fn zeroed() -> Self {
-        Self {
-            data: [0u8; 16]
-        }
+        Self { data: [0u8; 16] }
     }
 }
 
@@ -28,7 +26,7 @@ impl TileId {
 pub struct VramBank {
     tiles: [Tile; 384],
     map0: [TileId; 1024],
-    map1: [TileId; 1024]
+    map1: [TileId; 1024],
 }
 
 impl VramBank {
@@ -36,14 +34,14 @@ impl VramBank {
         Self {
             tiles: [Tile::zeroed(); 384],
             map0: [TileId::zeroed(); 1024],
-            map1: [TileId::zeroed(); 1024]
+            map1: [TileId::zeroed(); 1024],
         }
     }
 }
 
 #[derive(Clone)]
 pub struct Vram {
-    inner: Rc<RefCell<VramBank>>
+    inner: Rc<RefCell<VramBank>>,
 }
 
 impl Vram {
@@ -52,7 +50,7 @@ impl Vram {
 
     pub fn new() -> Self {
         Self {
-            inner: Rc::new(RefCell::new(VramBank::zeroed()))
+            inner: Rc::new(RefCell::new(VramBank::zeroed())),
         }
     }
 }
@@ -67,13 +65,15 @@ impl Bus for Vram {
                 let pixel_index = vram_addr % 16;
 
                 self.inner.borrow().tiles[tile_index as usize].data[pixel_index as usize]
-            },
+            }
             0x1800..=0x1BFF => {
                 self.inner.borrow().map0[(vram_addr - Self::TILE_MAP_OFFSET) as usize].0
-            },
+            }
             0x1C00..=0x1FFF => {
-                self.inner.borrow().map1[(vram_addr - Self::TILE_MAP_OFFSET - Self::TILE_MAP_SIZE) as usize].0
-            },
+                self.inner.borrow().map1
+                    [(vram_addr - Self::TILE_MAP_OFFSET - Self::TILE_MAP_SIZE) as usize]
+                    .0
+            }
             _ => {
                 return Err(crate::cpu::error::Error::MemoryFault);
             }
@@ -96,19 +96,22 @@ impl Bus for Vram {
                 let tile_index = vram_addr / 16;
                 let pixel_index = vram_addr % 16;
 
-                self.inner.borrow_mut().tiles[tile_index as usize].data[pixel_index as usize] = data;
-            },
+                self.inner.borrow_mut().tiles[tile_index as usize].data[pixel_index as usize] =
+                    data;
+            }
             0x1800..=0x1BFF => {
                 self.inner.borrow_mut().map0[(vram_addr - Self::TILE_MAP_OFFSET) as usize].0 = data;
-            },
+            }
             0x1C00..=0x1FFF => {
-                self.inner.borrow_mut().map1[(vram_addr - Self::TILE_MAP_OFFSET - Self::TILE_MAP_SIZE) as usize].0 = data;
-            },
+                self.inner.borrow_mut().map1
+                    [(vram_addr - Self::TILE_MAP_OFFSET - Self::TILE_MAP_SIZE) as usize]
+                    .0 = data;
+            }
             _ => {
                 return Err(crate::cpu::error::Error::MemoryFault);
             }
         }
-        
+
         Ok(())
     }
 

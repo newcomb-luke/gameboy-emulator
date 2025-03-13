@@ -1,4 +1,3 @@
-
 #[derive(Debug, Clone, Copy)]
 pub enum Instruction {
     // Block 0
@@ -267,7 +266,7 @@ pub enum Register8 {
     E,
     H,
     L,
-    HlIndirect
+    HlIndirect,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -275,7 +274,7 @@ pub enum Condition {
     Nz,
     Z,
     Nc,
-    C
+    C,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]

@@ -4,6 +4,8 @@ A simple GameBoy emulator written in Rust just for fun
 ## Progress:
 
 - [ ] MVP
+    - [x] Cartridge header reading
+    - [ ] Cartridge reading
     - [x] Instruction decoding
     - [ ] Instruction execution
     - [ ] Execute Boot ROM
@@ -118,21 +120,21 @@ A simple GameBoy emulator written in Rust just for fun
     - [ ]  ~~VRAM DMA~~ (CGB)
     - [ ]  ~~LCD Color Palettes~~ (CGB)
     - [ ]  ~~WRAM Bank Select~~ (CGB)
-- [ ] Cartridge Header Reading
+- [x] Cartridge Header Reading
     - [x] Entry Point
     - [x] Nintendo Logo
     - [x] Title
-    - [ ] Manufacturer Code
-    - [ ] ~~Color GameBoy Flag~~
-    - [ ] New Licensee Code
-    - [ ] ~~Super GameBoy Flag~~
+    - [x] Manufacturer Code
+    - [x] ~~Color GameBoy Flag~~
+    - [x] New Licensee Code
+    - [x] ~~Super GameBoy Flag~~
     - [x] Cartridge Type
     - [x] ROM Size
     - [x] RAM Size
     - [x] Destination Code
-    - [ ] Old Licensee Code
+    - [x] Old Licensee Code
     - [x] Mask ROM Version Number
     - [x] Header Checksum
-    - [ ] Global Checksum
+    - [x] Global Checksum
     - [x] Header Checksum Calculation
     - [ ] Global Checksum Calculation

@@ -1,5 +1,7 @@
-use std::{fmt::Display, ops::{BitAnd, BitAndAssign, BitOr, BitOrAssign}};
-
+use std::{
+    fmt::Display,
+    ops::{BitAnd, BitAndAssign, BitOr, BitOrAssign},
+};
 
 #[derive(Debug, Clone, Copy)]
 pub struct ExecutionState {
@@ -9,7 +11,7 @@ pub struct ExecutionState {
     reg_de: u16,
     reg_hl: u16,
     reg_a: u8,
-    flags: Flags
+    flags: Flags,
 }
 
 impl ExecutionState {
@@ -21,7 +23,7 @@ impl ExecutionState {
             reg_de: 0,
             reg_hl: 0,
             reg_a: 0,
-            flags: Flags::zeros()
+            flags: Flags::zeros(),
         }
     }
 
@@ -143,7 +145,7 @@ pub struct Flags {
     pub carry: bool,
     pub half_carry: bool,
     pub subtraction: bool,
-    pub zero: bool
+    pub zero: bool,
 }
 
 impl Flags {
@@ -152,7 +154,7 @@ impl Flags {
             carry,
             half_carry,
             subtraction,
-            zero
+            zero,
         }
     }
 
@@ -161,7 +163,7 @@ impl Flags {
             carry: false,
             half_carry: false,
             subtraction: false,
-            zero: false
+            zero: false,
         }
     }
 
@@ -186,10 +188,18 @@ impl Flags {
     }
 
     pub fn set_with_mask(mut self, rhs: Flags, mask: Flags) -> Self {
-        if mask.carry { self.carry = rhs.carry; }
-        if mask.half_carry { self.half_carry = rhs.half_carry; }
-        if mask.subtraction { self.subtraction = rhs.subtraction; }
-        if mask.zero { self.zero = rhs.zero; }
+        if mask.carry {
+            self.carry = rhs.carry;
+        }
+        if mask.half_carry {
+            self.half_carry = rhs.half_carry;
+        }
+        if mask.subtraction {
+            self.subtraction = rhs.subtraction;
+        }
+        if mask.zero {
+            self.zero = rhs.zero;
+        }
 
         self
     }
@@ -235,15 +245,17 @@ impl BitOrAssign for Flags {
 
 impl Display for ExecutionState {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "IP: {:04x} SP: {:04x} BC: {:04x} DE: {:04x} HL: {:04x} AF: {:04x} {}",
-                self.instruction_pointer,
-                self.stack_pointer,
-                self.reg_bc,
-                self.reg_de,
-                self.reg_hl,
-                self.reg_af(),
-                self.flags
-            )
+        write!(
+            f,
+            "IP: {:04x} SP: {:04x} BC: {:04x} DE: {:04x} HL: {:04x} AF: {:04x} {}",
+            self.instruction_pointer,
+            self.stack_pointer,
+            self.reg_bc,
+            self.reg_de,
+            self.reg_hl,
+            self.reg_af(),
+            self.flags
+        )
     }
 }
 
@@ -253,12 +265,12 @@ impl From<u8> for Flags {
         let half_carry = ((value >> 5) & 1) != 0;
         let subtraction = ((value >> 6) & 1) != 0;
         let zero = ((value >> 7) & 1) != 0;
-        
+
         Self {
             carry,
             half_carry,
             subtraction,
-            zero
+            zero,
         }
     }
 }

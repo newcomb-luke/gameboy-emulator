@@ -6,14 +6,12 @@ pub mod error;
 
 #[derive(Debug, Clone, Copy)]
 pub struct BootRom {
-    contents: [u8; 256]
+    contents: [u8; 256],
 }
 
 impl BootRom {
     pub fn new(contents: [u8; 256]) -> Self {
-        Self {
-            contents
-        }
+        Self { contents }
     }
 
     pub fn contents(&self) -> &[u8; 256] {
@@ -26,7 +24,9 @@ pub struct BootRomReader {}
 impl BootRomReader {
     pub fn read(reader: &mut impl Read) -> Result<BootRom, Error> {
         let mut contents = [0u8; 256];
-        reader.read_exact(&mut contents).map_err(|e| Error::from(e))?;
+        reader
+            .read_exact(&mut contents)
+            .map_err(|e| Error::from(e))?;
 
         Ok(BootRom::new(contents))
     }
