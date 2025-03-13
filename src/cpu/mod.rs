@@ -1,132 +1,216 @@
-use std::fmt::Display;
-
+use alu::Alu;
 use decoder::Decoder;
 use error::Error;
-use instruction::{Instruction, Register16, Register8};
-use memory::Memory;
+use execution_state::ExecutionState;
+use instruction::{Condition, Instruction, Register16, Register16Memory, Register8};
+use bus::Bus;
 
-mod decoder;
-mod error;
-mod instruction;
-pub mod memory;
+pub mod decoder;
+pub mod error;
+pub mod instruction;
+pub mod execution_state;
+pub mod bus;
+pub mod alu;
 
-#[derive(Debug, Clone, Copy)]
-pub struct ExecutionState {
-    instruction_pointer: u16,
-    stack_pointer: u16,
-    reg_bc: u16,
-    reg_de: u16,
-    reg_hl: u16,
-    reg_af: u16,
-}
-
-impl ExecutionState {
-    pub fn new() -> Self {
-        Self {
-            instruction_pointer: 0,
-            stack_pointer: 0xFFFF,
-            reg_bc: 0,
-            reg_de: 0,
-            reg_hl: 0,
-            reg_af: 0,
-        }
-    }
-
-    pub fn instruction_pointer(&self) -> u16 {
-        self.instruction_pointer
-    }
-
-    pub fn stack_pointer(&self) -> u16 {
-        self.stack_pointer
-    }
-
-    pub fn carry_flag(&self) -> bool {
-        ((self.reg_af >> 4) & 0b1) != 0
-    }
-
-    pub fn half_carry_flag(&self) -> bool {
-        ((self.reg_af >> 5) & 0b1) != 0
-    }
-
-    pub fn subtraction_flag(&self) -> bool {
-        ((self.reg_af >> 6) & 0b1) != 0
-    }
-
-    pub fn zero_flag(&self) -> bool {
-        ((self.reg_af >> 7) & 0b1) != 0
-    }
-}
-
-impl Display for ExecutionState {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "IP: {:04x} SP: {:04x} BC: {:04x} DE: {:04x} HL: {:04x} AF: {:04x} {}{}{}{}",
-                self.instruction_pointer,
-                self.stack_pointer,
-                self.reg_bc,
-                self.reg_de,
-                self.reg_hl,
-                self.reg_af,
-                if self.zero_flag() { 'z' } else { '-' },
-                if self.subtraction_flag() { 'n' } else { '-' },
-                if self.half_carry_flag() { 'h' } else { '-' },
-                if self.carry_flag() { 'c' } else { '-' },
-            )
-    }
-}
-
-#[derive(Debug, Clone)]
-pub struct Cpu<'mem> {
+pub struct Cpu<B> {
     state: ExecutionState,
-    memory: &'mem Memory,
-    decoder: Decoder
+    bus: B,
+    decoder: Decoder,
+    alu: Alu
 }
 
-impl<'mem> Cpu<'mem> {
-    pub fn new(memory: &'mem Memory) -> Self {
+impl<B: Bus> Cpu<B> {
+    pub fn new(bus: B) -> Self {
         Self {
             state: ExecutionState::new(),
-            memory,
-            decoder: Decoder::new()
+            bus,
+            decoder: Decoder::new(),
+            alu: Alu::new()
         }
     }
 
     pub fn execute_one(&mut self) -> Result<(), Error> {
-        let current_instruction = self.decoder.decode_one(&self.state, &self.memory)?;
+        let current_instruction = self.decoder.decode_one(&self.state, &self.bus)?;
+        let mut next_instruction_address = self.state.instruction_pointer().wrapping_add(current_instruction.length());
 
         println!("{:#?}", current_instruction);
 
         match current_instruction {
             Instruction::Nop => {}
             Instruction::LdReg16(r16, imm16) => {
-                self.update_r16(r16, u16::from(imm16));
+                self.update_r16(r16, imm16.into());
             },
-            Instruction::XorReg8(r8) => {
-                let value = self.get_r8(Register8::A) ^ self.get_r8(r8);
-                self.update_r8(r8, value);
+            Instruction::LdMemA(r16mem) => {
+                self.update_r16_mem_u8(r16mem, self.get_r8(Register8::A)?)?;
             }
-            _ => todo!()
+            Instruction::LdAMem(r16mem) => {
+                let new_a = self.get_r16_mem_u8(r16mem)?;
+                self.update_r8(Register8::A, new_a)?;
+            }
+            Instruction::LdImm16Sp(imm16) => {
+                self.bus.write_u16(imm16.into(), self.state.stack_pointer())?;
+            }
+            Instruction::Inc8(r8) => {
+                let val = self.get_r8(r8)?;
+                let (result, flags) = self.alu.add_u8(val, 1);
+                self.update_r8(r8, result)?;
+                self.state.set_flags(flags);
+            }
+            Instruction::Dec8(r8) => {
+                todo!()
+            }
+            Instruction::LdReg8Imm(r8, imm8) => {
+                self.update_r8(r8, imm8.into())?;
+            }
+            Instruction::Rlca => {
+                let val = self.get_r8(Register8::A)?;
+                let (result, flags) = self.alu.rotate_left_u8(val);
+                self.update_r8(Register8::A, result)?;
+                self.state.set_flags(flags);
+            }
+            Instruction::JrImm(imm8) => {
+                next_instruction_address = self.rel_jump_dest(imm8.into(), current_instruction.length());
+            }
+            Instruction::JrCond(cond, imm8) => {
+                let dest = self.rel_jump_dest(imm8.into(), current_instruction.length());
+
+                if self.is_condition_met(cond) {
+                    next_instruction_address = dest;
+                }
+            }
+            Instruction::XorReg8(r8) => {
+                let val = self.get_r8(r8)?;
+                let (result, flags) = self.alu.xor_u8(val, self.get_r8(Register8::A)?);
+                self.update_r8(r8, result)?;
+                self.state.set_flags(flags);
+            }
+            Instruction::Bit(idx, r8) => {
+                let val = self.get_r8(r8)?;
+                let (flags, mask) = self.alu.test_bit_u8(idx.into(), val);
+                let original_flags = self.state.flags();
+                self.state.set_flags(original_flags.set_with_mask(flags, mask));
+            }
+            _ => unimplemented!("Instruction execution not yet implemented for {:#?}", current_instruction)
         }
 
-        self.state.instruction_pointer += current_instruction.length();
+        self.state.set_instruction_pointer(next_instruction_address);
 
         println!("{}", self.state);
 
         Ok(())
     }
 
+    fn is_condition_met(&self, cond: Condition) -> bool {
+        match cond {
+            Condition::Nz => !self.state.flags().zero,
+            Condition::Z => self.state.flags().zero,
+            Condition::Nc => !self.state.flags().carry,
+            Condition::C => self.state.flags().carry
+        }
+    }
+
+    fn rel_jump_dest(&self, offset: i8, instr_len: u16) -> u16 {
+        let address_after = self.state.instruction_pointer().wrapping_add(instr_len);
+        ((address_after as i32 + (offset as i32)) & 0xFFFF) as u16
+    }
+
+    fn update_r16_mem_u16(&mut self, r16mem: Register16Memory, value: u16) -> Result<(), Error> {
+        match r16mem {
+            Register16Memory::Bc => {
+                self.bus.write_u16(self.state.reg_bc(), value)?;
+            },
+            Register16Memory::De => {
+                self.bus.write_u16(self.state.reg_de(), value)?;
+            },
+            Register16Memory::Hli | Register16Memory::Hld => {
+                self.bus.write_u16(self.state.reg_hl(), value)?;
+            }
+        }
+
+        self.after_r16_mem(r16mem);
+
+        Ok(())
+    }
+
+    fn update_r16_mem_u8(&mut self, r16mem: Register16Memory, value: u8) -> Result<(), Error> {
+        match r16mem {
+            Register16Memory::Bc => {
+                self.bus.write_u8(self.state.reg_bc(), value)?;
+            },
+            Register16Memory::De => {
+                self.bus.write_u8(self.state.reg_de(), value)?;
+            },
+            Register16Memory::Hli | Register16Memory::Hld => {
+                self.bus.write_u8(self.state.reg_hl(), value)?;
+            }
+        }
+
+        self.after_r16_mem(r16mem);
+
+        Ok(())
+    }
+
+    fn get_r16_mem_u8(&mut self, r16mem: Register16Memory) -> Result<u8, Error> {
+        let val = match r16mem {
+            Register16Memory::Bc => {
+                self.bus.read_u8(self.state.reg_bc())
+            },
+            Register16Memory::De => {
+                self.bus.read_u8(self.state.reg_de())
+            },
+            Register16Memory::Hli | Register16Memory::Hld => {
+                self.bus.read_u8(self.state.reg_hl())
+            }
+        }?;
+
+        self.after_r16_mem(r16mem);
+
+        Ok(val)
+    }
+
+    fn get_r16_mem_u16(&mut self, r16mem: Register16Memory) -> Result<u16, Error> {
+        let val = match r16mem {
+            Register16Memory::Bc => {
+                self.bus.read_u16(self.state.reg_bc())
+            },
+            Register16Memory::De => {
+                self.bus.read_u16(self.state.reg_de())
+            },
+            Register16Memory::Hli | Register16Memory::Hld => {
+                self.bus.read_u16(self.state.reg_hl())
+            }
+        }?;
+
+        self.after_r16_mem(r16mem);
+
+        Ok(val)
+    }
+
+    fn after_r16_mem(&mut self, r16mem: Register16Memory) {
+        match r16mem {
+            Register16Memory::Hld => {
+                self.state.set_reg_hl(self.state.reg_hl().wrapping_sub(1));
+            }
+            Register16Memory::Hli => {
+                self.state.set_reg_hl(self.state.reg_hl().wrapping_add(1));
+            }
+            _ => {}
+        }
+    }
+
     fn update_r16(&mut self, r16: Register16, value: u16) {
         match r16 {
             Register16::Bc => {
-                self.state.reg_bc = value;
+                self.state.set_reg_bc(value);
             },
             Register16::De => {
-                self.state.reg_de = value;
+                self.state.set_reg_de(value);
             },
             Register16::Hl => {
-                self.state.reg_hl = value;
+                self.state.set_reg_hl(value);
             },
             Register16::Sp => {
-                self.state.stack_pointer = value;
+                self.state.set_stack_pointer(value);
             }
         }
     }
@@ -134,77 +218,77 @@ impl<'mem> Cpu<'mem> {
     fn get_r16(&self, r16: Register16) -> u16 {
         match r16 {
             Register16::Bc => {
-                self.state.reg_bc
+                self.state.reg_bc()
             },
             Register16::De => {
-                self.state.reg_de
+                self.state.reg_de()
             },
             Register16::Hl => {
-                self.state.reg_hl
+                self.state.reg_hl()
             },
             Register16::Sp => {
-                self.state.stack_pointer
+                self.state.stack_pointer()
             }
         }
     }
 
-    fn update_r8(&mut self, r8: Register8, value: u8) {
+    fn update_r8(&mut self, r8: Register8, value: u8) -> Result<(), Error> {
         match r8 {
             Register8::A => {
-                self.state.reg_af = (self.state.reg_af & 0x00FF) | ((value as u16) << 8);
+                self.state.set_reg_a(value);
             },
             Register8::B => {
-                self.state.reg_bc = (self.state.reg_bc & 0x00FF) | ((value as u16) << 8);
+                self.state.set_reg_b(value);
             },
             Register8::C => {
-                self.state.reg_bc = (self.state.reg_bc & 0xFF00) | (value as u16);
+                self.state.set_reg_c(value);
             },
             Register8::D => {
-                self.state.reg_de = (self.state.reg_de & 0x00FF) | ((value as u16) << 8);
+                self.state.set_reg_d(value);
             },
             Register8::E => {
-                self.state.reg_de = (self.state.reg_de & 0xFF00) | (value as u16);
+                self.state.set_reg_e(value);
             },
             Register8::H => {
-                self.state.reg_hl = (self.state.reg_hl & 0x00FF) | ((value as u16) << 8);
+                self.state.set_reg_h(value);
             },
             Register8::L => {
-                self.state.reg_hl = (self.state.reg_hl & 0xFF00) | (value as u16);
+                self.state.set_reg_l(value);
             },
             Register8::HlIndirect => {
-                // Write r8 to [HL]
-                todo!()
+                self.bus.write_u8(self.state.reg_hl(), value)?;
             }
         }
+        Ok(())
     }
 
-    fn get_r8(&self, r8: Register8) -> u8 {
-        match r8 {
+    fn get_r8(&self, r8: Register8) -> Result<u8, Error> {
+        let v = match r8 {
             Register8::A => {
-                (self.state.reg_af >> 8) as u8
+                self.state.reg_a()
             },
             Register8::B => {
-                (self.state.reg_bc >> 8) as u8
+                self.state.reg_b()
             },
             Register8::C => {
-                (self.state.reg_bc & 0x00FF) as u8
+                self.state.reg_c()
             },
             Register8::D => {
-                (self.state.reg_de >> 8) as u8
+                self.state.reg_d()
             },
             Register8::E => {
-                (self.state.reg_de & 0x00FF) as u8
+                self.state.reg_e()
             },
             Register8::H => {
-                (self.state.reg_hl >> 8) as u8
+                self.state.reg_h()
             },
             Register8::L => {
-                (self.state.reg_hl & 0x00FF) as u8
+                self.state.reg_l()
             },
             Register8::HlIndirect => {
-                // Write r8 to [HL]
-                todo!()
+                self.bus.read_u8(self.state.reg_hl())?
             }
-        }
+        };
+        Ok(v)
     }
 }

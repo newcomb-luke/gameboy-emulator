@@ -1,6 +1,6 @@
 use std::path::Path;
 
-use gameboy_emulator::{boot::{BootRom, BootRomReader}, cartridge::Cartridge, cpu::{memory::Memory, Cpu}};
+use gameboy_emulator::{boot::{BootRom, BootRomReader}, cartridge::Cartridge, cpu::{bus::{MainBus, SharedBus}, Cpu}};
 
 fn main() {
     let boot_rom = read_boot_rom("dmg_boot.bin");
@@ -18,11 +18,12 @@ fn main() {
     println!("Header checksum (computed): {:02x}", header.computed_header_checksum());
     println!("Header checksum valid: {}", header.header_checksum_valid());
 
-    let memory = Memory::new(boot_rom, cartridge);
+    let bus = MainBus::new(boot_rom, cartridge);
+    let shared_bus = SharedBus::new(bus);
 
-    let mut cpu = Cpu::new(&memory);
+    let mut cpu = Cpu::new(shared_bus);
 
-    for _ in 0..4 {
+    loop {
         cpu.execute_one().unwrap();
     }
 }
