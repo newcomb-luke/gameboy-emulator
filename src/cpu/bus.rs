@@ -1,6 +1,6 @@
 use std::{cell::RefCell, rc::Rc};
 
-use crate::{boot::BootRom, cartridge::Cartridge};
+use crate::{boot::BootRom, cartridge::Cartridge, ppu::vram::Vram};
 
 use super::error::Error;
 
@@ -11,7 +11,7 @@ pub trait Bus {
     fn write_u16(&self, address: u16, data: u16) -> Result<(), Error>;
 }
 
-#[derive(Debug, Clone)]
+#[derive(Clone)]
 pub struct SharedBus {
     inner: Rc<RefCell<MainBus>>
 }
@@ -42,18 +42,20 @@ impl Bus for SharedBus {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Clone)]
 pub struct MainBus {
     boot_rom: BootRom,
     cartridge: Cartridge,
+    vram: Vram,
     boot_rom_enabled: bool,
 }
 
 impl MainBus {
-    pub fn new(boot_rom: BootRom, cartridge: Cartridge) -> Self {
+    pub fn new(boot_rom: BootRom, cartridge: Cartridge, vram: Vram) -> Self {
         Self {
             boot_rom,
             cartridge,
+            vram,
             boot_rom_enabled: true,
         }
     }
@@ -70,6 +72,12 @@ impl MainBus {
             0x0100..=0x3FFF => {
                 self.cartridge.bank0()[address as usize]
             },
+            0x4000..=0x7FFF => {
+                self.cartridge.bank1()[(address as usize) - 0x4000]
+            },
+            0x8000..=0x9FFF => {
+                self.vram.read_u8(address)?
+            }
             _ => {
                 return Err(Error::MemoryFault);
             }
@@ -85,8 +93,11 @@ impl MainBus {
 
     fn write_u8(&mut self, address: u16, data: u8) -> Result<(), Error> {
         Ok(match address {
-            0x0000..=0x3FFF => {
+            0x0000..=0x7FFF => {
 
+            }
+            0x8000..=0x9FFF => {
+                self.vram.write_u8(address, data)?
             }
             _ => {
                 return Err(Error::MemoryFault);

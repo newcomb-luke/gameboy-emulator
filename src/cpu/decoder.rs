@@ -146,7 +146,7 @@ impl Decoder {
     }
 
     fn read_cond(&self, opcode: u8) -> Condition {
-        let value = (opcode >> 3) & 0b111;
+        let value = (opcode >> 3) & 0b11;
 
         match value {
             0 => Condition::Nz,

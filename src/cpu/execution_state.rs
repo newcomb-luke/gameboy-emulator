@@ -241,7 +241,7 @@ impl Display for ExecutionState {
                 self.reg_bc,
                 self.reg_de,
                 self.reg_hl,
-                self.reg_a,
+                self.reg_af(),
                 self.flags
             )
     }
