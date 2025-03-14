@@ -1,6 +1,11 @@
 use std::{cell::RefCell, rc::Rc};
 
-use crate::{boot::BootRom, cartridge::Cartridge, ppu::vram::Vram};
+use crate::{
+    boot::BootRom,
+    cartridge::Cartridge,
+    io::{SharedIO, IO},
+    ppu::vram::Vram,
+};
 
 use super::error::Error;
 
@@ -47,15 +52,17 @@ pub struct MainBus {
     boot_rom: BootRom,
     cartridge: Cartridge,
     vram: Vram,
+    io: SharedIO,
     boot_rom_enabled: bool,
 }
 
 impl MainBus {
-    pub fn new(boot_rom: BootRom, cartridge: Cartridge, vram: Vram) -> Self {
+    pub fn new(boot_rom: BootRom, cartridge: Cartridge, vram: Vram, io: SharedIO) -> Self {
         Self {
             boot_rom,
             cartridge,
             vram,
+            io,
             boot_rom_enabled: true,
         }
     }
@@ -72,6 +79,7 @@ impl MainBus {
             0x0100..=0x3FFF => self.cartridge.bank0()[address as usize],
             0x4000..=0x7FFF => self.cartridge.bank1()[(address as usize) - 0x4000],
             0x8000..=0x9FFF => self.vram.read_u8(address)?,
+            0xFF00..=0xFF7F => self.io.read_u8(address)?,
             _ => {
                 return Err(Error::MemoryFault);
             }
@@ -89,6 +97,7 @@ impl MainBus {
         Ok(match address {
             0x0000..=0x7FFF => {}
             0x8000..=0x9FFF => self.vram.write_u8(address, data)?,
+            0xFF00..=0xFF7F => self.io.write_u8(address, data)?,
             _ => {
                 return Err(Error::MemoryFault);
             }

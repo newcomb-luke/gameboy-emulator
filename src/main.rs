@@ -7,6 +7,7 @@ use gameboy_emulator::{
         bus::{MainBus, SharedBus},
         Cpu,
     },
+    io::{SharedIO, IO},
     ppu::{vram::Vram, Ppu},
 };
 
@@ -33,13 +34,15 @@ fn main() {
         header.computed_header_checksum()
     );
     println!("Header checksum valid: {}", header.header_checksum_valid());
-    println!("Global checksum (read): {:04x}", header.read_global_checksum());
-
-    unimplemented!();
+    println!(
+        "Global checksum (read): {:04x}",
+        header.read_global_checksum()
+    );
 
     let vram = Vram::new();
+    let shared_io = SharedIO::new();
 
-    let bus = MainBus::new(boot_rom, cartridge, vram.clone());
+    let bus = MainBus::new(boot_rom, cartridge, vram.clone(), shared_io);
     let shared_bus = SharedBus::new(bus);
 
     let mut cpu = Cpu::new(shared_bus);

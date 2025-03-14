@@ -15,7 +15,7 @@ pub enum Instruction {
     /// dec r16
     Dec16(Register16),
     /// add hl, r16
-    Add(Register16),
+    AddHl(Register16),
     /// inc r8
     Inc8(Register8),
     /// dec r8
@@ -120,7 +120,7 @@ pub enum Instruction {
     /// add sp, imm8
     AddSp(Imm8),
     /// ld hl, sp + imm8
-    LdSpImm8(Imm8),
+    LdHlSpImm8(Imm8),
     /// ld sp, hl
     LdSpHl,
     /// di
@@ -162,7 +162,7 @@ impl Instruction {
             Self::LdImm16Sp(_) => 3,
             Self::Inc16(_) => 1,
             Self::Dec16(_) => 1,
-            Self::Add(_) => 1,
+            Self::AddHl(_) => 1,
             Self::Inc8(_) => 1,
             Self::Dec8(_) => 1,
             Self::LdReg8Imm(_, _) => 2,
@@ -213,7 +213,7 @@ impl Instruction {
             Self::LdhAImm(_) => 2,
             Self::LdAImm(_) => 3,
             Self::AddSp(_) => 2,
-            Self::LdSpImm8(_) => 2,
+            Self::LdHlSpImm8(_) => 2,
             Self::LdSpHl => 1,
             Self::Di => 1,
             Self::Ei => 1,

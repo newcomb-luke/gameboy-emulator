@@ -24,9 +24,9 @@ A simple GameBoy emulator written in Rust just for fun
         - [x] ld \[r16mem\], a
         - [x] ld a, \[r16mem\]
         - [x] ld \[imm16\], sp
-        - [ ] inc r16
+        - [x] inc r16
         - [ ] dec r16
-        - [ ] add hl, r16
+        - [x] add hl, r16
         - [x] inc r8
         - [ ] dec r8
         - [x] ld r8, imm8
@@ -108,8 +108,8 @@ A simple GameBoy emulator written in Rust just for fun
     - [ ] HRAM
     - [ ] Interrupt Enable Register
 - [ ] I/O Registers
-    - [ ]  Joypad Input
-    - [ ]  Serial transfer
+    - [x]  Joypad Input
+    - [x]  Serial transfer
     - [ ]  Timer and Divider
     - [ ]  Interrupts
     - [ ]  Audio

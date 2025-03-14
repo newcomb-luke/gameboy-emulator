@@ -74,7 +74,7 @@ impl CartridgeHeader {
         old_licensee_code: OldLicenseeCode,
         version_number: u8,
         header_checksum: u8,
-        global_checksum: u16
+        global_checksum: u16,
     ) -> Self {
         Self {
             title: title.into(),
@@ -91,7 +91,7 @@ impl CartridgeHeader {
             read_header_checksum: header_checksum,
             computed_header_checksum: header_checksum,
             read_global_checksum: global_checksum,
-            computed_global_checksum: global_checksum
+            computed_global_checksum: global_checksum,
         }
     }
 
@@ -166,9 +166,7 @@ impl CartridgeHeader {
     pub fn licensee(&self) -> Licensee {
         match self.old_licensee_code {
             OldLicenseeCode::UseNewLicenseeCode => Licensee::New(self.new_licensee_code),
-            c => {
-                Licensee::Old(c)
-            }
+            c => Licensee::Old(c),
         }
     }
 }
@@ -208,7 +206,7 @@ impl CartridgeHeaderReader {
             read_header_checksum,
             computed_header_checksum,
             read_global_checksum,
-            computed_global_checksum
+            computed_global_checksum,
         })
     }
 
@@ -409,7 +407,7 @@ impl ManufacturerCode {
 pub enum CgbFlag {
     No,
     BackwardsCompatible,
-    CgbOnly
+    CgbOnly,
 }
 
 impl From<u8> for CgbFlag {
@@ -417,9 +415,7 @@ impl From<u8> for CgbFlag {
         match value {
             0x80 => Self::BackwardsCompatible,
             0xC0 => Self::CgbOnly,
-            _ => {
-                Self::No
-            }
+            _ => Self::No,
         }
     }
 }
@@ -566,7 +562,7 @@ pub enum NewLicenseeCode {
     KonamiYuGiOh,
     Mto,
     Kodansha,
-    Unknown(char, char)
+    Unknown(char, char),
 }
 
 impl From<(char, char)> for NewLicenseeCode {
@@ -717,14 +713,14 @@ impl Display for NewLicenseeCode {
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum SgbFlag {
     No,
-    Yes
+    Yes,
 }
 
 impl From<u8> for SgbFlag {
     fn from(value: u8) -> Self {
         match value {
             0x03 => Self::Yes,
-            _ => Self::No
+            _ => Self::No,
         }
     }
 }
@@ -1036,14 +1032,14 @@ impl Display for OldLicenseeCode {
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Licensee {
     Old(OldLicenseeCode),
-    New(NewLicenseeCode)
+    New(NewLicenseeCode),
 }
 
 impl Display for Licensee {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             Self::Old(o) => write!(f, "{}", o),
-            Self::New(n) => write!(f, "{}", n)
+            Self::New(n) => write!(f, "{}", n),
         }
     }
 }

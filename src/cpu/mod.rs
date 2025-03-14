@@ -2,7 +2,7 @@ use alu::Alu;
 use bus::Bus;
 use decoder::Decoder;
 use error::Error;
-use execution_state::ExecutionState;
+use execution_state::SharedExecutionState;
 use instruction::{Condition, Instruction, Register16, Register16Memory, Register8};
 
 pub mod alu;
@@ -13,7 +13,7 @@ pub mod execution_state;
 pub mod instruction;
 
 pub struct Cpu<B> {
-    state: ExecutionState,
+    state: SharedExecutionState,
     bus: B,
     decoder: Decoder,
     alu: Alu,
@@ -21,11 +21,12 @@ pub struct Cpu<B> {
 
 impl<B: Bus> Cpu<B> {
     pub fn new(bus: B) -> Self {
+        let state = SharedExecutionState::new();
         Self {
-            state: ExecutionState::new(),
+            state: state.clone(),
             bus,
             decoder: Decoder::new(),
-            alu: Alu::new(),
+            alu: Alu::new(state),
         }
     }
 
@@ -54,23 +55,32 @@ impl<B: Bus> Cpu<B> {
                 self.bus
                     .write_u16(imm16.into(), self.state.stack_pointer())?;
             }
+            Instruction::Inc16(r16) => {
+                self.update_r16(r16, self.alu.inc_u16(self.get_r16(r16)));
+            }
+            Instruction::Dec16(r16) => {
+                self.update_r16(r16, self.alu.dec_u16(self.get_r16(r16)));
+            }
+            Instruction::AddHl(r16) => {
+                let val1 = self.get_r16(Register16::Hl);
+                let val2 = self.get_r16(r16);
+                let result = self.alu.add_u16(val1, val2);
+                self.update_r16(r16, result);
+            }
             Instruction::Inc8(r8) => {
-                let val = self.get_r8(r8)?;
-                let (result, flags) = self.alu.add_u8(val, 1);
-                self.update_r8(r8, result)?;
-                self.state.set_flags(flags);
+                self.update_r8(r8, self.alu.inc_u8(self.get_r8(r8)?))?;
             }
             Instruction::Dec8(r8) => {
-                todo!()
+                self.update_r8(r8, self.alu.dec_u8(self.get_r8(r8)?))?;
             }
             Instruction::LdReg8Imm(r8, imm8) => {
                 self.update_r8(r8, imm8.into())?;
             }
             Instruction::Rlca => {
-                let val = self.get_r8(Register8::A)?;
-                let (result, flags) = self.alu.rotate_left_u8(val);
-                self.update_r8(Register8::A, result)?;
-                self.state.set_flags(flags);
+                self.update_r8(
+                    Register8::A,
+                    self.alu.rotate_left_u8(self.get_r8(Register8::A)?),
+                )?;
             }
             Instruction::JrImm(imm8) => {
                 next_instruction_address =
@@ -85,16 +95,12 @@ impl<B: Bus> Cpu<B> {
             }
             Instruction::XorReg8(r8) => {
                 let val = self.get_r8(r8)?;
-                let (result, flags) = self.alu.xor_u8(val, self.get_r8(Register8::A)?);
+                let result = self.alu.xor_u8(val, self.get_r8(Register8::A)?);
                 self.update_r8(r8, result)?;
-                self.state.set_flags(flags);
             }
             Instruction::Bit(idx, r8) => {
                 let val = self.get_r8(r8)?;
-                let (flags, mask) = self.alu.test_bit_u8(idx.into(), val);
-                let original_flags = self.state.flags();
-                self.state
-                    .set_flags(original_flags.set_with_mask(flags, mask));
+                self.alu.test_bit_u8(idx.into(), val);
             }
             _ => unimplemented!(
                 "Instruction execution not yet implemented for {:#?}",

@@ -1,6 +1,8 @@
 use std::{
+    cell::RefCell,
     fmt::Display,
     ops::{BitAnd, BitAndAssign, BitOr, BitOrAssign},
+    rc::Rc,
 };
 
 #[derive(Debug, Clone, Copy)]
@@ -27,116 +29,140 @@ impl ExecutionState {
         }
     }
 
-    pub fn instruction_pointer(&self) -> u16 {
-        self.instruction_pointer
-    }
-
-    pub fn set_instruction_pointer(&mut self, value: u16) {
-        self.instruction_pointer = value;
-    }
-
-    pub fn instruction_pointer_add(&mut self, value: u16) {
-        self.instruction_pointer = self.instruction_pointer.wrapping_add(value);
-    }
-
-    pub fn stack_pointer(&self) -> u16 {
-        self.stack_pointer
-    }
-
-    pub fn set_stack_pointer(&mut self, value: u16) {
-        self.stack_pointer = value;
-    }
-
-    pub fn set_flags(&mut self, flags: Flags) {
-        self.flags = flags
-    }
-
-    pub fn flags(&self) -> Flags {
-        self.flags
-    }
-
     pub fn reg_af(&self) -> u16 {
         ((self.reg_a as u16) << 8) | u16::from(self.flags)
     }
+}
+
+#[derive(Debug, Clone)]
+pub struct SharedExecutionState {
+    inner: Rc<RefCell<ExecutionState>>,
+}
+
+impl SharedExecutionState {
+    pub fn new() -> Self {
+        Self {
+            inner: Rc::new(RefCell::new(ExecutionState::new())),
+        }
+    }
+
+    pub fn instruction_pointer(&self) -> u16 {
+        self.inner.borrow().instruction_pointer
+    }
+
+    pub fn set_instruction_pointer(&self, value: u16) {
+        self.inner.borrow_mut().instruction_pointer = value;
+    }
+
+    pub fn stack_pointer(&self) -> u16 {
+        self.inner.borrow().stack_pointer
+    }
+
+    pub fn set_stack_pointer(&self, value: u16) {
+        self.inner.borrow_mut().stack_pointer = value;
+    }
+
+    pub fn set_flags(&self, flags: Flags) {
+        self.inner.borrow_mut().flags = flags
+    }
+
+    pub fn flags(&self) -> Flags {
+        self.inner.borrow().flags
+    }
+
+    pub fn modify_flags<F>(&self, f: F)
+    where
+        F: FnOnce(&mut Flags),
+    {
+        let mut flags = self.flags();
+
+        f(&mut flags);
+
+        self.set_flags(flags);
+    }
+
+    pub fn reg_af(&self) -> u16 {
+        self.inner.borrow().reg_af()
+    }
 
     pub fn reg_a(&self) -> u8 {
-        self.reg_a
+        self.inner.borrow().reg_a
     }
 
     pub fn set_reg_a(&mut self, value: u8) {
-        self.reg_a = value;
+        self.inner.borrow_mut().reg_a = value;
     }
 
     pub fn reg_bc(&self) -> u16 {
-        self.reg_bc
+        self.inner.borrow().reg_bc
     }
 
     pub fn set_reg_bc(&mut self, value: u16) {
-        self.reg_bc = value;
+        self.inner.borrow_mut().reg_bc = value;
     }
 
     pub fn reg_b(&self) -> u8 {
-        (self.reg_bc >> 8) as u8
+        (self.reg_bc() >> 8) as u8
     }
 
     pub fn reg_c(&self) -> u8 {
-        (self.reg_bc & 0x00FF) as u8
+        (self.reg_bc() & 0x00FF) as u8
     }
 
     pub fn set_reg_b(&mut self, value: u8) {
-        self.reg_bc = (self.reg_bc & 0x00FF) | ((value as u16) << 8)
+        self.set_reg_bc((self.reg_bc() & 0x00FF) | ((value as u16) << 8));
     }
 
     pub fn set_reg_c(&mut self, value: u8) {
-        self.reg_bc = (self.reg_bc & 0xFF00) | value as u16
+        self.set_reg_bc((self.reg_bc() & 0xFF00) | value as u16)
     }
 
     pub fn reg_de(&self) -> u16 {
-        self.reg_de
+        self.inner.borrow().reg_de
     }
 
     pub fn set_reg_de(&mut self, value: u16) {
-        self.reg_de = value;
+        self.inner.borrow_mut().reg_de = value;
     }
 
     pub fn reg_d(&self) -> u8 {
-        (self.reg_de >> 8) as u8
+        (self.reg_de() >> 8) as u8
     }
 
     pub fn reg_e(&self) -> u8 {
-        (self.reg_de & 0x00FF) as u8
+        (self.reg_de() & 0x00FF) as u8
     }
 
     pub fn set_reg_d(&mut self, value: u8) {
-        self.reg_de = (self.reg_de & 0x00FF) | ((value as u16) << 8)
+        self.set_reg_de((self.reg_de() & 0x00FF) | ((value as u16) << 8))
     }
 
     pub fn set_reg_e(&mut self, value: u8) {
-        self.reg_de = (self.reg_de & 0xFF00) | value as u16
+        self.set_reg_de((self.reg_de() & 0xFF00) | value as u16)
     }
 
     pub fn reg_hl(&self) -> u16 {
-        self.reg_hl
+        self.inner.borrow().reg_hl
     }
 
     pub fn set_reg_hl(&mut self, value: u16) {
-        self.reg_hl = value;
+        self.inner.borrow_mut().reg_hl = value;
     }
 
     pub fn reg_h(&self) -> u8 {
-        (self.reg_hl >> 8) as u8
+        (self.reg_hl() >> 8) as u8
     }
 
     pub fn reg_l(&self) -> u8 {
-        (self.reg_hl & 0x00FF) as u8
+        (self.reg_hl() & 0x00FF) as u8
     }
 
     pub fn set_reg_h(&mut self, value: u8) {
-        self.reg_hl = (self.reg_hl & 0x00FF) | ((value as u16) << 8)
+        self.set_reg_hl((self.reg_hl() & 0x00FF) | ((value as u16) << 8));
     }
 
     pub fn set_reg_l(&mut self, value: u8) {
-        self.reg_hl = (self.reg_hl & 0xFF00) | value as u16
+        self.set_reg_hl((self.reg_hl() & 0xFF00) | value as u16);
     }
 }
 
@@ -172,9 +198,27 @@ impl Flags {
         self
     }
 
+    pub fn just_zero() -> Self {
+        Self {
+            carry: false,
+            half_carry: false,
+            subtraction: false,
+            zero: true,
+        }
+    }
+
     pub fn with_carry(mut self, carry: bool) -> Self {
         self.carry = carry;
         self
+    }
+
+    pub fn just_carry() -> Self {
+        Self {
+            carry: true,
+            half_carry: false,
+            subtraction: false,
+            zero: false,
+        }
     }
 
     pub fn with_half_carry(mut self, half_carry: bool) -> Self {
@@ -182,9 +226,27 @@ impl Flags {
         self
     }
 
+    pub fn just_half_carry() -> Self {
+        Self {
+            carry: false,
+            half_carry: true,
+            subtraction: false,
+            zero: false,
+        }
+    }
+
     pub fn with_subtraction(mut self, subtraction: bool) -> Self {
         self.subtraction = subtraction;
         self
+    }
+
+    pub fn just_subtraction() -> Self {
+        Self {
+            carry: false,
+            half_carry: false,
+            subtraction: true,
+            zero: false,
+        }
     }
 
     pub fn set_with_mask(mut self, rhs: Flags, mask: Flags) -> Self {
@@ -256,6 +318,12 @@ impl Display for ExecutionState {
             self.reg_af(),
             self.flags
         )
+    }
+}
+
+impl Display for SharedExecutionState {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.inner.borrow())
     }
 }
 

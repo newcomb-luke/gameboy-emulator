@@ -1,11 +1,11 @@
 use super::{
     bus::Bus,
     error::Error,
+    execution_state::SharedExecutionState,
     instruction::{
         BitIndex, Condition, Imm16, Imm8, Instruction, Register16, Register16Memory,
-        Register16Stack, Register8,
+        Register16Stack, Register8, Target,
     },
-    ExecutionState,
 };
 
 #[derive(Debug, Clone)]
@@ -16,7 +16,11 @@ impl Decoder {
         Self {}
     }
 
-    pub fn decode_one(&self, state: &ExecutionState, bus: &impl Bus) -> Result<Instruction, Error> {
+    pub fn decode_one(
+        &self,
+        state: &SharedExecutionState,
+        bus: &impl Bus,
+    ) -> Result<Instruction, Error> {
         let ip = state.instruction_pointer();
         let opcode_byte = bus.read_u8(state.instruction_pointer())?;
 
@@ -26,7 +30,7 @@ impl Decoder {
             Opcode::Nop => Instruction::Nop,
             Opcode::LdReg16 => {
                 let r16 = self.read_r16(opcode_byte, 4);
-                let imm16 = self.read_imm16(bus, ip + 1)?;
+                let imm16 = self.read_imm16(bus, ip)?;
                 Instruction::LdReg16(r16, imm16)
             }
             Opcode::LdMemA => {
@@ -38,8 +42,20 @@ impl Decoder {
                 Instruction::LdAMem(r16mem)
             }
             Opcode::LdImm16Sp => {
-                let imm16 = self.read_imm16(bus, ip + 1)?;
+                let imm16 = self.read_imm16(bus, ip)?;
                 Instruction::LdImm16Sp(imm16)
+            }
+            Opcode::Inc16 => {
+                let r16 = self.read_r16(opcode_byte, 4);
+                Instruction::Inc16(r16)
+            }
+            Opcode::Dec16 => {
+                let r16 = self.read_r16(opcode_byte, 4);
+                Instruction::Dec16(r16)
+            }
+            Opcode::AddHl => {
+                let r16 = self.read_r16(opcode_byte, 4);
+                Instruction::AddHl(r16)
             }
             Opcode::Inc8 => {
                 let r8 = self.read_r8(opcode_byte, 3);
@@ -51,52 +67,190 @@ impl Decoder {
             }
             Opcode::LdReg8Imm => {
                 let r8 = self.read_r8(opcode_byte, 3);
-                let imm8 = self.read_imm8(bus, ip + 1)?;
+                let imm8 = self.read_imm8(bus, ip)?;
                 Instruction::LdReg8Imm(r8, imm8)
             }
             Opcode::Rlca => Instruction::Rlca,
+            Opcode::Rrca => Instruction::Rrca,
+            Opcode::Rla => Instruction::Rla,
+            Opcode::Rra => Instruction::Rra,
+            Opcode::Daa => Instruction::Daa,
+            Opcode::Cpl => Instruction::Cpl,
+            Opcode::Scf => Instruction::Scf,
+            Opcode::Ccf => Instruction::Ccf,
             Opcode::JrImm => {
-                let imm8 = self.read_imm8(bus, ip + 1)?;
+                let imm8 = self.read_imm8(bus, ip)?;
                 Instruction::JrImm(imm8)
             }
             Opcode::JrCond => {
                 let cond = self.read_cond(opcode_byte);
-                let imm8 = self.read_imm8(bus, ip + 1)?;
+                let imm8 = self.read_imm8(bus, ip)?;
                 Instruction::JrCond(cond, imm8)
             }
-            Opcode::XorReg8 => {
+            Opcode::Stop => Instruction::Stop,
+            Opcode::LdReg8Reg8 => {
+                let src = self.read_r8(opcode_byte, 0);
+                let dest = self.read_r8(opcode_byte, 3);
+                Instruction::LdReg8Reg8(dest, src)
+            }
+            Opcode::Halt => Instruction::Halt,
+            Opcode::AddReg8
+            | Opcode::AdcReg8
+            | Opcode::SubReg8
+            | Opcode::SbcReg8
+            | Opcode::AndReg8
+            | Opcode::XorReg8
+            | Opcode::OrReg8
+            | Opcode::CpReg8 => {
                 let r8 = self.read_r8(opcode_byte, 0);
-                Instruction::XorReg8(r8)
+
+                match opcode {
+                    Opcode::AddReg8 => Instruction::AddReg8(r8),
+                    Opcode::AdcReg8 => Instruction::AdcReg8(r8),
+                    Opcode::SubReg8 => Instruction::SubReg8(r8),
+                    Opcode::SbcReg8 => Instruction::SbcReg8(r8),
+                    Opcode::AndReg8 => Instruction::AndReg8(r8),
+                    Opcode::XorReg8 => Instruction::XorReg8(r8),
+                    Opcode::OrReg8 => Instruction::OrReg8(r8),
+                    Opcode::CpReg8 => Instruction::CpReg8(r8),
+                    _ => panic!(),
+                }
+            }
+            Opcode::AddImm8
+            | Opcode::AdcImm8
+            | Opcode::SubImm8
+            | Opcode::SbcImm8
+            | Opcode::AndImm8
+            | Opcode::XorImm8
+            | Opcode::OrImm8
+            | Opcode::CpImm8 => {
+                let imm8 = self.read_imm8(bus, ip)?;
+
+                match opcode {
+                    Opcode::AddImm8 => Instruction::AddImm8(imm8),
+                    Opcode::AdcImm8 => Instruction::AdcImm8(imm8),
+                    Opcode::SubImm8 => Instruction::SubImm8(imm8),
+                    Opcode::SbcImm8 => Instruction::SbcImm8(imm8),
+                    Opcode::AndImm8 => Instruction::AndImm8(imm8),
+                    Opcode::XorImm8 => Instruction::XorImm8(imm8),
+                    Opcode::OrImm8 => Instruction::OrImm8(imm8),
+                    Opcode::CpImm8 => Instruction::CpImm8(imm8),
+                    _ => panic!(),
+                }
+            }
+            Opcode::RetCond => {
+                let cond = self.read_cond(opcode_byte);
+                Instruction::RetCond(cond)
+            }
+            Opcode::Ret => Instruction::Ret,
+            Opcode::Reti => Instruction::Reti,
+            Opcode::JpCond => {
+                let cond = self.read_cond(opcode_byte);
+                let imm16 = self.read_imm16(bus, ip)?;
+                Instruction::JpCond(cond, imm16)
+            }
+            Opcode::JpImm => {
+                let imm16 = self.read_imm16(bus, ip)?;
+                Instruction::JpImm(imm16)
+            }
+            Opcode::JpHl => Instruction::JpHl,
+            Opcode::CallCond => {
+                let cond = self.read_cond(opcode_byte);
+                let imm16 = self.read_imm16(bus, ip)?;
+                Instruction::CallCond(cond, imm16)
+            }
+            Opcode::CallImm => {
+                let imm16 = self.read_imm16(bus, ip)?;
+                Instruction::CallImm(imm16)
+            }
+            Opcode::Rst => {
+                let tgt = self.read_tgt(opcode_byte);
+                Instruction::Rst(tgt)
+            }
+            Opcode::Pop => {
+                let r16stk = self.read_r16_stack(opcode_byte);
+                Instruction::Pop(r16stk)
+            }
+            Opcode::Push => {
+                let r16stk = self.read_r16_stack(opcode_byte);
+                Instruction::Push(r16stk)
             }
             Opcode::Prefix => {
                 let prefixed_byte = bus.read_u8(ip + 1)?;
-
                 let prefixed = Prefixed::try_from(prefixed_byte)?;
 
                 match prefixed {
-                    Prefixed::Bit => {
+                    Prefixed::Rlc
+                    | Prefixed::Rrc
+                    | Prefixed::Rl
+                    | Prefixed::Rr
+                    | Prefixed::Sla
+                    | Prefixed::Sra
+                    | Prefixed::Swap
+                    | Prefixed::Srl => {
+                        let r8 = self.read_r8(prefixed_byte, 0);
+
+                        match prefixed {
+                            Prefixed::Rlc => Instruction::Rlc(r8),
+                            Prefixed::Rrc => Instruction::Rrc(r8),
+                            Prefixed::Rl => Instruction::Rl(r8),
+                            Prefixed::Rr => Instruction::Rr(r8),
+                            Prefixed::Sla => Instruction::Sla(r8),
+                            Prefixed::Sra => Instruction::Sra(r8),
+                            Prefixed::Swap => Instruction::Swap(r8),
+                            Prefixed::Srl => Instruction::Srl(r8),
+                            _ => panic!(),
+                        }
+                    }
+                    Prefixed::Bit | Prefixed::Res | Prefixed::Set => {
                         let bit_index = self.read_bit_index(prefixed_byte);
                         let r8 = self.read_r8(prefixed_byte, 0);
-                        Instruction::Bit(bit_index, r8)
-                    }
-                    _ => {
-                        unimplemented!(
-                            "Unimplemented CB-prefixed instruction decoding for {:#?}",
-                            prefixed
-                        );
+
+                        match prefixed {
+                            Prefixed::Bit => Instruction::Bit(bit_index, r8),
+                            Prefixed::Res => Instruction::Res(bit_index, r8),
+                            Prefixed::Set => Instruction::Set(bit_index, r8),
+                            _ => panic!(),
+                        }
                     }
                 }
             }
-            _ => {
-                unimplemented!("Unimplemented instruction decoding for {:#?}", opcode);
+            Opcode::LdhMemA => Instruction::LdhMemA,
+            Opcode::LdhImmMem => {
+                let imm8 = self.read_imm8(bus, ip)?;
+                Instruction::LdhImmMem(imm8)
             }
+            Opcode::LdImmMem => {
+                let imm16 = self.read_imm16(bus, ip)?;
+                Instruction::LdImmMem(imm16)
+            }
+            Opcode::LdhAMem => Instruction::LdhAMem,
+            Opcode::LdhAImm => {
+                let imm8 = self.read_imm8(bus, ip)?;
+                Instruction::LdhAImm(imm8)
+            }
+            Opcode::LdAImm => {
+                let imm16 = self.read_imm16(bus, ip)?;
+                Instruction::LdAImm(imm16)
+            }
+            Opcode::AddSp => {
+                let imm8 = self.read_imm8(bus, ip)?;
+                Instruction::AddSp(imm8)
+            }
+            Opcode::LdHlSpImm8 => {
+                let imm8 = self.read_imm8(bus, ip)?;
+                Instruction::LdHlSpImm8(imm8)
+            }
+            Opcode::LdSpHl => Instruction::LdSpHl,
+            Opcode::Di => Instruction::Di,
+            Opcode::Ei => Instruction::Ei,
         };
 
         Ok(instruction)
     }
 
-    fn read_r16(&self, opcode: u8, bit_offset: u8) -> Register16 {
-        let value = (opcode >> bit_offset) & 0b11;
+    fn read_r16(&self, opcode_byte: u8, bit_offset: u8) -> Register16 {
+        let value = (opcode_byte >> bit_offset) & 0b11;
 
         match value {
             0 => Register16::Bc,
@@ -107,8 +261,8 @@ impl Decoder {
         }
     }
 
-    fn read_r16_stack(&self, opcode: u8, bit_offset: u8) -> Register16Stack {
-        let value = (opcode >> bit_offset) & 0b11;
+    fn read_r16_stack(&self, opcode_byte: u8) -> Register16Stack {
+        let value = (opcode_byte >> 4) & 0b11;
 
         match value {
             0 => Register16Stack::Bc,
@@ -119,8 +273,8 @@ impl Decoder {
         }
     }
 
-    fn read_r16_mem(&self, opcode: u8, bit_offset: u8) -> Register16Memory {
-        let value = (opcode >> bit_offset) & 0b11;
+    fn read_r16_mem(&self, opcode_byte: u8, bit_offset: u8) -> Register16Memory {
+        let value = (opcode_byte >> bit_offset) & 0b11;
 
         match value {
             0 => Register16Memory::Bc,
@@ -131,8 +285,8 @@ impl Decoder {
         }
     }
 
-    fn read_r8(&self, opcode: u8, bit_offset: u8) -> Register8 {
-        let value = (opcode >> bit_offset) & 0b111;
+    fn read_r8(&self, opcode_byte: u8, bit_offset: u8) -> Register8 {
+        let value = (opcode_byte >> bit_offset) & 0b111;
 
         match value {
             0 => Register8::B,
@@ -152,8 +306,13 @@ impl Decoder {
         BitIndex::from(value)
     }
 
-    fn read_cond(&self, opcode: u8) -> Condition {
-        let value = (opcode >> 3) & 0b11;
+    fn read_tgt(&self, opcode_byte: u8) -> Target {
+        let value = (opcode_byte >> 3) & 0b111;
+        Target::from(value)
+    }
+
+    fn read_cond(&self, opcode_byte: u8) -> Condition {
+        let value = (opcode_byte >> 3) & 0b11;
 
         match value {
             0 => Condition::Nz,
@@ -164,13 +323,13 @@ impl Decoder {
         }
     }
 
-    fn read_imm8(&self, bus: &impl Bus, address: u16) -> Result<Imm8, Error> {
-        let value = bus.read_u8(address)?;
+    fn read_imm8(&self, bus: &impl Bus, ip: u16) -> Result<Imm8, Error> {
+        let value = bus.read_u8(ip + 1)?;
         Ok(Imm8::from(value))
     }
 
-    fn read_imm16(&self, bus: &impl Bus, address: u16) -> Result<Imm16, Error> {
-        let value = bus.read_u16(address)?;
+    fn read_imm16(&self, bus: &impl Bus, ip: u16) -> Result<Imm16, Error> {
+        let value = bus.read_u16(ip + 1)?;
         Ok(Imm16::from(value))
     }
 }
@@ -185,7 +344,7 @@ pub enum Opcode {
     LdImm16Sp,
     Inc16,
     Dec16,
-    Add,
+    AddHl,
     Inc8,
     Dec8,
     LdReg8Imm,
@@ -239,7 +398,7 @@ pub enum Opcode {
     LdhAImm,
     LdAImm,
     AddSp,
-    LdSpImm8,
+    LdHlSpImm8,
     LdSpHl,
     Di,
     Ei,
@@ -383,7 +542,7 @@ impl TryFrom<u8> for Opcode {
         } else if value == 0b1110_1000 {
             Opcode::AddSp
         } else if value == 0b1111_1000 {
-            Opcode::LdSpImm8
+            Opcode::LdHlSpImm8
         } else if value == 0b1111_1001 {
             Opcode::LdSpHl
         } else if value == 0b1111_0011 {
