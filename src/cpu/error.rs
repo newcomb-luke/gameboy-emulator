@@ -2,5 +2,5 @@
 pub enum Error {
     BootRomReadFailure,
     InvalidInstruction,
-    MemoryFault,
+    MemoryFault(u16),
 }

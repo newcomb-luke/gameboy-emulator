@@ -216,13 +216,13 @@ impl Decoder {
                 }
             }
             Opcode::LdhMemA => Instruction::LdhMemA,
-            Opcode::LdhImmMem => {
+            Opcode::LdhImmA => {
                 let imm8 = self.read_imm8(bus, ip)?;
-                Instruction::LdhImmMem(imm8)
+                Instruction::LdhImmA(imm8)
             }
-            Opcode::LdImmMem => {
+            Opcode::LdImmA => {
                 let imm16 = self.read_imm16(bus, ip)?;
-                Instruction::LdImmMem(imm16)
+                Instruction::LdImmA(imm16)
             }
             Opcode::LdhAMem => Instruction::LdhAMem,
             Opcode::LdhAImm => {
@@ -392,8 +392,8 @@ pub enum Opcode {
     Pop,
     Push,
     LdhMemA,
-    LdhImmMem,
-    LdImmMem,
+    LdhImmA,
+    LdImmA,
     LdhAMem,
     LdhAImm,
     LdAImm,
@@ -530,9 +530,9 @@ impl TryFrom<u8> for Opcode {
         } else if value == 0b1110_0010 {
             Opcode::LdhMemA
         } else if value == 0b1110_0000 {
-            Opcode::LdhImmMem
+            Opcode::LdhImmA
         } else if value == 0b1110_1010 {
-            Opcode::LdImmMem
+            Opcode::LdImmA
         } else if value == 0b1111_0010 {
             Opcode::LdhAMem
         } else if value == 0b1111_0000 {

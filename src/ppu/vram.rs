@@ -75,7 +75,7 @@ impl Bus for Vram {
                     .0
             }
             _ => {
-                return Err(crate::cpu::error::Error::MemoryFault);
+                return Err(crate::cpu::error::Error::MemoryFault(address));
             }
         })
     }
@@ -88,7 +88,6 @@ impl Bus for Vram {
     }
 
     fn write_u8(&self, address: u16, data: u8) -> Result<(), crate::cpu::error::Error> {
-        println!("Before addr: {address:04x}");
         let vram_addr = address - 0x8000;
 
         match vram_addr {
@@ -108,7 +107,7 @@ impl Bus for Vram {
                     .0 = data;
             }
             _ => {
-                return Err(crate::cpu::error::Error::MemoryFault);
+                return Err(crate::cpu::error::Error::MemoryFault(address));
             }
         }
 

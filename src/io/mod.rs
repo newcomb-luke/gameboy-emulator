@@ -4,12 +4,14 @@ use std::{
 };
 
 use audio::Audio;
+use lcd::Lcd;
 use serial::Serial;
 
 use crate::cpu::bus::Bus;
 
 pub mod audio;
 pub mod serial;
+pub mod lcd;
 
 #[derive(Debug, Clone, Copy)]
 pub struct IORegister(u8);
@@ -33,6 +35,7 @@ pub struct IO {
     joypad_input: IORegister,
     serial: Serial,
     audio: Audio,
+    lcd: Lcd
 }
 
 impl IO {
@@ -41,6 +44,7 @@ impl IO {
             joypad_input: IORegister::new(),
             serial: Serial::new(),
             audio: Audio::new(),
+            lcd: Lcd::new()
         }
     }
 }
@@ -60,28 +64,92 @@ impl SharedIO {
 
 impl Bus for SharedIO {
     fn read_u8(&self, address: u16) -> Result<u8, crate::cpu::error::Error> {
-        todo!()
+        let inner = self.inner.borrow();
+
+        Ok(match address {
+            0xFF44 => {
+                inner.lcd.read_lcd_y()
+            },
+            _ => {
+                unimplemented!("IO read from address 0x{:04x}", address);
+                return Err(crate::cpu::error::Error::MemoryFault(address));
+            }
+        })
     }
 
     fn read_u16(&self, address: u16) -> Result<u16, crate::cpu::error::Error> {
-        todo!()
+        todo!("IO.read_u16(0x{:04x})", address);
     }
 
     fn write_u8(&self, address: u16, data: u8) -> Result<(), crate::cpu::error::Error> {
         let mut inner = self.inner.borrow_mut();
 
         match address {
-            0xFF26 => {
-                inner.audio.write_audio_master_control(data);
+            0xFF10 => {
+                inner.audio.channel_1_mut().write_sweep(data);
             }
-            0xFF25 => {
-                inner.audio.write_sound_panning(data);
+            0xFF11 => {
+                inner
+                    .audio
+                    .channel_1_mut()
+                    .write_length_timer_and_duty_cycle(data);
+            }
+            0xFF12 => {
+                inner.audio.channel_1_mut().write_volume_and_envelope(data);
+            }
+            0xFF13 => {
+                inner.audio.channel_1_mut().write_period_low(data);
+            }
+            0xFF14 => {
+                inner
+                    .audio
+                    .channel_1_mut()
+                    .write_period_high_and_control(data);
             }
             0xFF24 => {
                 inner.audio.write_master_volume_vin_panning(data);
             }
+            0xFF25 => {
+                inner.audio.write_sound_panning(data);
+            }
+            0xFF26 => {
+                inner.audio.write_audio_master_control(data);
+            }
+            0xFF40 => {
+                inner.lcd.write_control(data);
+            }
+            0xFF41 => {
+                inner.lcd.write_status(data);
+            }
+            0xFF42 => {
+                inner.lcd.write_scroll_y(data);
+            }
+            0xFF43 => {
+                inner.lcd.write_scroll_x(data);
+            }
+            0xFF44 => {
+                inner.lcd.write_lcd_y(data);
+            }
+            0xFF45 => {
+                inner.lcd.write_lcd_y_compare(data);
+            }
+            0xFF47 => {
+                inner.lcd.write_background_palette(data);
+            }
+            0xFF48 => {
+                inner.lcd.write_obj_palette_0(data);
+            }
+            0xFF49 => {
+                inner.lcd.write_obj_palette_1(data);
+            }
+            0xFF4A => {
+                inner.lcd.write_window_y(data);
+            }
+            0xFF4B => {
+                inner.lcd.write_window_x(data);
+            }
             _ => {
-                return Err(crate::cpu::error::Error::MemoryFault);
+                return Err(crate::cpu::error::Error::MemoryFault(address));
             }
         }
 

@@ -9,17 +9,21 @@ impl Alu {
         Self { state }
     }
 
-    pub fn rotate_left_u8(&self, v: u8) -> u8 {
+    pub fn rotate_left_u8(&self, v: u8, update_zero_flag: bool, through_carry: bool) -> u8 {
         let carry = v >> 7;
-        let result = (v << 1) | carry;
+        let result = if through_carry {
+            (v << 1) | (if self.state.flags().carry { 1 } else { 0 })
+        } else {
+            (v << 1) | carry
+        };
 
-        let flags = Flags::new(carry != 0, false, false, result == 0);
+        let flags = Flags::new(carry != 0, false, false, update_zero_flag && result == 0);
         self.state.set_flags(flags);
 
         result
     }
 
-    /// v1 - v2
+    /// v2 - v1
     pub fn sub_u16(&self, v1: u16, v2: u16) -> u16 {
         todo!()
     }
@@ -33,57 +37,72 @@ impl Alu {
     }
 
     pub fn inc_u8(&self, val: u8) -> u8 {
-        todo!()
+        let flags_before = self.state.flags();
+
+        let result = self.add_u8(val, 1);
+
+        self.state.modify_flags(|f| {
+            f.carry = flags_before.carry;
+        });
+
+        result
     }
 
     pub fn dec_u8(&self, val: u8) -> u8 {
-        todo!()
+        let flags_before = self.state.flags();
+
+        let result = self.sub_u8(1, val);
+
+        self.state.modify_flags(|f| {
+            f.carry = flags_before.carry;
+        });
+
+        result
     }
 
     pub fn add_u16(&self, v1: u16, v2: u16) -> u16 {
+        let (result, carry) = v1.overflowing_add(v2);
         let half_result = (v1 & 0x0FFF) + (v2 & 0x0FFF);
-        let big_result = (v1 as u32) + (v2 as u32);
-        let real_result = (big_result & 0xFFFF) as u16;
+        let half_carry = half_result > 0x0FFF;
 
-        let mut carry = false;
-        let mut half_carry = false;
-        let zero = real_result == 0;
-
-        if (big_result >> 16) != 0 {
-            carry = true;
-        }
-
-        if (half_result >> 12) != 0 {
-            half_carry = true;
-        }
-
-        let flags = Flags::new(carry, half_carry, false, zero);
+        let flags = Flags::new(carry, half_carry, false, result == 0);
         self.state.set_flags(flags);
 
-        real_result
+        result
     }
 
     pub fn add_u8(&self, v1: u8, v2: u8) -> u8 {
+        let (result, carry) = v1.overflowing_add(v2);
+
         let half_result = (v1 & 0x0F) + (v2 & 0x0F);
-        let big_result = (v1 as u16) + (v2 as u16);
-        let real_result = (big_result & 0xFF) as u8;
+        let half_carry = half_result > 0x0F;
 
-        let mut carry = false;
-        let mut half_carry = false;
-        let zero = real_result == 0;
-
-        if (big_result >> 8) != 0 {
-            carry = true;
-        }
-
-        if (half_result >> 4) != 0 {
-            half_carry = true;
-        }
-
-        let flags = Flags::new(carry, half_carry, false, zero);
+        let flags = Flags::new(carry, half_carry, false, result == 0);
         self.state.set_flags(flags);
 
-        real_result
+        result
+    }
+
+    pub fn adc_u8(&self, v1: u8, v2: u8) -> u8 {
+        todo!()
+    }
+
+    /// v2 - v1
+    pub fn sub_u8(&self, v1: u8, v2: u8) -> u8 {
+        let (result, carry) = v2.overflowing_sub(v1);
+        let half_carry = (v2 & 0x0F) < (v1 & 0x0F);
+
+        self.state.set_flags(Flags::new(carry, half_carry, true, result == 0));
+
+        result
+    }
+
+    pub fn sbc_u8(&self, v1: u8, v2: u8) -> u8 {
+        todo!()
+    }
+
+    pub fn and_u8(&self, v1: u8, v2: u8) -> u8 {
+        todo!()
     }
 
     pub fn xor_u8(&self, v1: u8, v2: u8) -> u8 {
@@ -93,6 +112,14 @@ impl Alu {
         self.state.set_flags(flags);
 
         result
+    }
+
+    pub fn or_u8(&self, v1: u8, v2: u8) -> u8 {
+        todo!()
+    }
+
+    pub fn cp_u8(&self, v1: u8, v2: u8) {
+        self.sub_u8(v1, v2);
     }
 
     pub fn xor_u16(&self, v1: u16, v2: u16) -> u16 {
@@ -174,6 +201,16 @@ mod tests {
     }
 
     #[test]
+    fn add_u16_negative() {
+        test_alu_operation(|alu| {
+            let result = alu.add_u16(4, (-2i16) as u16);
+            assert_eq!(result, 2);
+
+            Flags::new(true, true, false, false)
+        });
+    }
+
+    #[test]
     fn add_u8_no_carry() {
         test_alu_operation(|alu| {
             let result = alu.add_u8(1, 2);
@@ -210,6 +247,36 @@ mod tests {
             assert_eq!(result, 0);
 
             Flags::new(true, true, false, true)
+        });
+    }
+
+    #[test]
+    fn add_u8_negative() {
+        test_alu_operation(|alu| {
+            let result = alu.add_u8(1, (-3i8) as u8);
+            assert_eq!(result, (-2i8) as u8);
+
+            Flags::new(false, false, false, false)
+        });
+    }
+
+    #[test]
+    fn sub_u8_no_borrow() {
+        test_alu_operation(|alu| {
+            let result = alu.sub_u8(2, 3);
+            assert_eq!(result, 1);
+
+            Flags::just_subtraction()
+        });
+    }
+
+    #[test]
+    fn sub_u8_borrow() {
+        test_alu_operation(|alu| {
+            let result = alu.sub_u8(32, 0);
+            assert_eq!(result, (-32i8) as u8);
+
+            Flags::new(true, false, true, false)
         });
     }
 
@@ -256,7 +323,7 @@ mod tests {
     #[test]
     fn rlc_u8_no_flag() {
         test_alu_operation(|alu| {
-            let result = alu.rotate_left_u8(0b0000_1000);
+            let result = alu.rotate_left_u8(0b0000_1000, true, false);
             assert_eq!(result, 0b0001_0000);
 
             Flags::zeros()
@@ -266,7 +333,7 @@ mod tests {
     #[test]
     fn rlc_u8_zero() {
         test_alu_operation(|alu| {
-            let result = alu.rotate_left_u8(0b0000_0000);
+            let result = alu.rotate_left_u8(0b0000_0000, true, false);
             assert_eq!(result, 0b0000_0000);
 
             Flags::just_zero()
@@ -276,7 +343,7 @@ mod tests {
     #[test]
     fn rlc_u8_carry() {
         test_alu_operation(|alu| {
-            let result = alu.rotate_left_u8(0b1000_0000);
+            let result = alu.rotate_left_u8(0b1000_0000, true, false);
             assert_eq!(result, 0b0000_0001);
 
             Flags::just_carry()

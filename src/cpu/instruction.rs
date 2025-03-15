@@ -108,9 +108,9 @@ pub enum Instruction {
     /// ldh [c], a
     LdhMemA,
     /// ldh [imm8], a
-    LdhImmMem(Imm8),
+    LdhImmA(Imm8),
     /// ld [imm16], a
-    LdImmMem(Imm16),
+    LdImmA(Imm16),
     /// ldh a, [c]
     LdhAMem,
     /// ldh a, [imm8]
@@ -207,8 +207,8 @@ impl Instruction {
             Self::Pop(_) => 1,
             Self::Push(_) => 1,
             Self::LdhMemA => 1,
-            Self::LdhImmMem(_) => 2,
-            Self::LdImmMem(_) => 3,
+            Self::LdhImmA(_) => 2,
+            Self::LdImmA(_) => 3,
             Self::LdhAMem => 1,
             Self::LdhAImm(_) => 2,
             Self::LdAImm(_) => 3,
@@ -307,7 +307,7 @@ impl From<Target> for u8 {
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Clone, Copy, PartialEq, Eq)]
 pub struct Imm8(u8);
 
 impl From<u8> for Imm8 {
@@ -328,7 +328,21 @@ impl From<Imm8> for i8 {
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+impl From<Imm8> for u16 {
+    fn from(value: Imm8) -> Self {
+        value.0 as u16
+    }
+}
+
+impl std::fmt::Debug for Imm8 {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_tuple("Imm8")
+            .field(&format_args!("0x{:02x}", self.0))
+            .finish()
+    }
+}
+
+#[derive(Clone, Copy, PartialEq, Eq)]
 pub struct Imm16(u16);
 
 impl From<u16> for Imm16 {
@@ -340,5 +354,13 @@ impl From<u16> for Imm16 {
 impl From<Imm16> for u16 {
     fn from(value: Imm16) -> Self {
         value.0
+    }
+}
+
+impl std::fmt::Debug for Imm16 {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_tuple("Imm16")
+            .field(&format_args!("0x{:04x}", self.0))
+            .finish()
     }
 }

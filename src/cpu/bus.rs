@@ -4,6 +4,7 @@ use crate::{
     boot::BootRom,
     cartridge::Cartridge,
     io::{SharedIO, IO},
+    memory::ram::HighRam,
     ppu::vram::Vram,
 };
 
@@ -53,6 +54,7 @@ pub struct MainBus {
     cartridge: Cartridge,
     vram: Vram,
     io: SharedIO,
+    high_ram: HighRam,
     boot_rom_enabled: bool,
 }
 
@@ -63,6 +65,7 @@ impl MainBus {
             cartridge,
             vram,
             io,
+            high_ram: HighRam::new(),
             boot_rom_enabled: true,
         }
     }
@@ -80,8 +83,9 @@ impl MainBus {
             0x4000..=0x7FFF => self.cartridge.bank1()[(address as usize) - 0x4000],
             0x8000..=0x9FFF => self.vram.read_u8(address)?,
             0xFF00..=0xFF7F => self.io.read_u8(address)?,
+            0xFF80..=0xFFFE => self.high_ram.read_u8(address),
             _ => {
-                return Err(Error::MemoryFault);
+                return Err(Error::MemoryFault(address));
             }
         })
     }
@@ -98,8 +102,9 @@ impl MainBus {
             0x0000..=0x7FFF => {}
             0x8000..=0x9FFF => self.vram.write_u8(address, data)?,
             0xFF00..=0xFF7F => self.io.write_u8(address, data)?,
+            0xFF80..=0xFFFE => self.high_ram.write_u8(address, data),
             _ => {
-                return Err(Error::MemoryFault);
+                return Err(Error::MemoryFault(address));
             }
         })
     }

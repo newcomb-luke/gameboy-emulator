@@ -14,6 +14,7 @@ pub struct ExecutionState {
     reg_hl: u16,
     reg_a: u8,
     flags: Flags,
+    interrupts_enabled: bool,
 }
 
 impl ExecutionState {
@@ -26,11 +27,17 @@ impl ExecutionState {
             reg_hl: 0,
             reg_a: 0,
             flags: Flags::zeros(),
+            interrupts_enabled: false,
         }
     }
 
     pub fn reg_af(&self) -> u16 {
         ((self.reg_a as u16) << 8) | u16::from(self.flags)
+    }
+
+    pub fn set_reg_af(&mut self, value: u16) {
+        self.reg_a = (value >> 8) as u8;
+        self.flags = Flags::from((value & 0xFF) as u8)
     }
 }
 
@@ -70,6 +77,14 @@ impl SharedExecutionState {
         self.inner.borrow().flags
     }
 
+    pub fn interrupts_enabled(&self) -> bool {
+        self.inner.borrow().interrupts_enabled
+    }
+
+    pub fn set_interrupts_enabled(&self, enabled: bool) {
+        self.inner.borrow_mut().interrupts_enabled = enabled;
+    }
+
     pub fn modify_flags<F>(&self, f: F)
     where
         F: FnOnce(&mut Flags),
@@ -83,6 +98,10 @@ impl SharedExecutionState {
 
     pub fn reg_af(&self) -> u16 {
         self.inner.borrow().reg_af()
+    }
+
+    pub fn set_reg_af(&mut self, value: u16) {
+        self.inner.borrow_mut().set_reg_af(value)
     }
 
     pub fn reg_a(&self) -> u8 {

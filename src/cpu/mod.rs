@@ -3,7 +3,7 @@ use bus::Bus;
 use decoder::Decoder;
 use error::Error;
 use execution_state::SharedExecutionState;
-use instruction::{Condition, Instruction, Register16, Register16Memory, Register8};
+use instruction::{Condition, Instruction, Register16, Register16Memory, Register16Stack, Register8};
 
 pub mod alu;
 pub mod bus;
@@ -79,9 +79,21 @@ impl<B: Bus> Cpu<B> {
             Instruction::Rlca => {
                 self.update_r8(
                     Register8::A,
-                    self.alu.rotate_left_u8(self.get_r8(Register8::A)?),
+                    self.alu.rotate_left_u8(self.get_r8(Register8::A)?, false, false),
                 )?;
             }
+            Instruction::Rrca => todo!(),
+            Instruction::Rla => {
+                self.update_r8(
+                    Register8::A,
+                    self.alu.rotate_left_u8(self.get_r8(Register8::A)?, false, true),
+                )?;
+            }
+            Instruction::Rra => todo!(),
+            Instruction::Daa => todo!(),
+            Instruction::Cpl => todo!(),
+            Instruction::Scf => todo!(),
+            Instruction::Ccf => todo!(),
             Instruction::JrImm(imm8) => {
                 next_instruction_address =
                     self.rel_jump_dest(imm8.into(), current_instruction.length());
@@ -93,19 +105,168 @@ impl<B: Bus> Cpu<B> {
                     next_instruction_address = dest;
                 }
             }
-            Instruction::XorReg8(r8) => {
-                let val = self.get_r8(r8)?;
-                let result = self.alu.xor_u8(val, self.get_r8(Register8::A)?);
-                self.update_r8(r8, result)?;
+            Instruction::Stop => todo!(),
+            Instruction::LdReg8Reg8(dest, src) => {
+                let val = self.get_r8(src)?;
+                self.update_r8(dest, val)?;
             }
+            Instruction::Halt => todo!(),
+            Instruction::AddReg8(r8)
+            | Instruction::AdcReg8(r8)
+            | Instruction::SubReg8(r8)
+            | Instruction::SbcReg8(r8)
+            | Instruction::AndReg8(r8)
+            | Instruction::XorReg8(r8)
+            | Instruction::OrReg8(r8) => {
+                let val = self.get_r8(r8)?;
+                let a = self.get_r8(Register8::A)?;
+
+                let result = match current_instruction {
+                    Instruction::AddReg8(_) => self.alu.add_u8(val, a),
+                    Instruction::AdcReg8(_) => self.alu.adc_u8(val, a),
+                    Instruction::SubReg8(_) => self.alu.sub_u8(val, a),
+                    Instruction::SbcReg8(_) => self.alu.sbc_u8(val, a),
+                    Instruction::AndReg8(_) => self.alu.and_u8(val, a),
+                    Instruction::XorReg8(_) => self.alu.xor_u8(val, a),
+                    Instruction::OrReg8(_) => self.alu.or_u8(val, a),
+                    _ => panic!(),
+                };
+
+                self.update_r8(Register8::A, result)?;
+            }
+            Instruction::CpReg8(r8) => {
+                let val = self.get_r8(r8)?;
+                let a = self.get_r8(Register8::A)?;
+                self.alu.cp_u8(val, a);
+            }
+            Instruction::AddImm8(imm8) |
+            Instruction::AdcImm8(imm8) |
+            Instruction::SubImm8(imm8) |
+            Instruction::SbcImm8(imm8) |
+            Instruction::AndImm8(imm8) |
+            Instruction::XorImm8(imm8) |
+            Instruction::OrImm8(imm8) => {
+                let val = imm8.into();
+                let a = self.get_r8(Register8::A)?;
+
+                let result = match current_instruction {
+                    Instruction::AddImm8(_) => self.alu.add_u8(val, a),
+                    Instruction::AdcImm8(_) => self.alu.adc_u8(val, a),
+                    Instruction::SubImm8(_) => self.alu.sub_u8(val, a),
+                    Instruction::SbcImm8(_) => self.alu.sbc_u8(val, a),
+                    Instruction::AndImm8(_) => self.alu.and_u8(val, a),
+                    Instruction::XorImm8(_) => self.alu.xor_u8(val, a),
+                    Instruction::OrImm8(_) => self.alu.or_u8(val, a),
+                    _ => panic!(),
+                };
+
+                self.update_r8(Register8::A, result)?;
+            }
+            Instruction::CpImm8(imm8) => {
+                let val = imm8.into();
+                let a = self.get_r8(Register8::A)?;
+                self.alu.cp_u8(val, a);
+            }
+            Instruction::RetCond(cond) => {
+                if self.is_condition_met(cond) {
+                    next_instruction_address = self.pop_u16()?;
+                }
+            }
+            Instruction::Ret => {
+                next_instruction_address = self.pop_u16()?;
+            }
+            Instruction::Reti => {
+                self.state.set_interrupts_enabled(true);
+                next_instruction_address = self.pop_u16()?;
+            }
+            Instruction::JpCond(cond, imm16) => {
+                if self.is_condition_met(cond) {
+                    next_instruction_address = imm16.into();
+                }
+            }
+            Instruction::JpImm(imm16) => {
+                next_instruction_address = imm16.into();
+            }
+            Instruction::JpHl => {
+                next_instruction_address = self.get_r16(Register16::Hl);
+            }
+            Instruction::CallCond(cond, imm16) => {
+                if self.is_condition_met(cond) {
+                    self.push_u16(next_instruction_address)?;
+                    next_instruction_address = imm16.into();
+                }
+            }
+            Instruction::CallImm(imm16) => {
+                self.push_u16(next_instruction_address)?;
+                next_instruction_address = imm16.into();
+            }
+            Instruction::Rst(tgt) => todo!(),
+            Instruction::Pop(r16stk) => {
+                let value = self.pop_u16()?;
+                self.update_r16_stack(r16stk, value);
+            }
+            Instruction::Push(r16stk) => {
+                let value = self.get_r16_stack(r16stk);
+                self.push_u16(value)?;
+            }
+            Instruction::LdhMemA => {
+                let val = self.get_r8(Register8::A)?;
+                let addr = 0xFF00 + (self.get_r8(Register8::C)? as u16);
+                self.bus.write_u8(addr, val)?;
+            }
+            Instruction::LdhImmA(imm8) => {
+                let val = self.get_r8(Register8::A)?;
+                let addr = 0xFF00 + u16::from(imm8);
+                self.bus.write_u8(addr, val)?;
+            }
+            Instruction::LdImmA(imm16) => {
+                let val = self.get_r8(Register8::A)?;
+                self.bus.write_u8(u16::from(imm16), val)?;
+            }
+            Instruction::LdhAMem => {
+                let addr = 0xFF00 + (self.get_r8(Register8::C)? as u16);
+                let val = self.bus.read_u8(addr)?;
+                self.update_r8(Register8::A, val)?;
+            }
+            Instruction::LdhAImm(imm8) => {
+                let addr = 0xFF00 + u16::from(imm8);
+                let val = self.bus.read_u8(addr)?;
+                self.update_r8(Register8::A, val)?;
+            }
+            Instruction::LdAImm(imm16) => {
+                let val = self.bus.read_u8(u16::from(imm16))?;
+                self.update_r8(Register8::A, val)?;
+            }
+            Instruction::AddSp(imm8) => todo!(),
+            Instruction::LdHlSpImm8(imm8) => todo!(),
+            Instruction::LdSpHl => todo!(),
+            Instruction::Di => self.state.set_interrupts_enabled(false),
+            Instruction::Ei => self.state.set_interrupts_enabled(true),
+            // Prefixed
+            Instruction::Rlc(r8) => {
+                self.update_r8(
+                    r8,
+                    self.alu.rotate_left_u8(self.get_r8(r8)?, true, false),
+                )?;
+            }
+            Instruction::Rrc(r8) => todo!(),
+            Instruction::Rl(r8) => {
+                self.update_r8(
+                    r8,
+                    self.alu.rotate_left_u8(self.get_r8(r8)?, true, true),
+                )?;
+            }
+            Instruction::Rr(r8) => todo!(),
+            Instruction::Sla(r8) => todo!(),
+            Instruction::Sra(r8) => todo!(),
+            Instruction::Swap(r8) => todo!(),
+            Instruction::Srl(r8) => todo!(),
             Instruction::Bit(idx, r8) => {
                 let val = self.get_r8(r8)?;
                 self.alu.test_bit_u8(idx.into(), val);
             }
-            _ => unimplemented!(
-                "Instruction execution not yet implemented for {:#?}",
-                current_instruction
-            ),
+            Instruction::Res(idx, r8) => todo!(),
+            Instruction::Set(idx, r8) => todo!(),
         }
 
         self.state.set_instruction_pointer(next_instruction_address);
@@ -113,6 +274,33 @@ impl<B: Bus> Cpu<B> {
         println!("{}", self.state);
 
         Ok(())
+    }
+
+    fn push_u16(&self, value: u16) -> Result<(), Error> {
+        self.push_u8((value >> 8) as u8)?;
+        self.push_u8((value & 0xFF) as u8)
+    }
+
+    fn push_u8(&self, value: u8) -> Result<(), Error> {
+        let new_sp = self.state.stack_pointer().wrapping_sub(1);
+        self.state.set_stack_pointer(new_sp);
+
+        self.bus.write_u8(new_sp, value)
+    }
+
+    fn pop_u16(&self) -> Result<u16, Error> {
+        let lo = self.pop_u8()? as u16;
+        let hi = self.pop_u8()? as u16;
+        Ok((hi << 8) | lo)
+    }
+
+    fn pop_u8(&self) -> Result<u8, Error> {
+        let old_sp = self.state.stack_pointer();
+
+        let value = self.bus.read_u8(old_sp)?;
+
+        self.state.set_stack_pointer(old_sp.wrapping_add(1));
+        Ok(value)
     }
 
     fn is_condition_met(&self, cond: Condition) -> bool {
@@ -127,6 +315,24 @@ impl<B: Bus> Cpu<B> {
     fn rel_jump_dest(&self, offset: i8, instr_len: u16) -> u16 {
         let address_after = self.state.instruction_pointer().wrapping_add(instr_len);
         ((address_after as i32 + (offset as i32)) & 0xFFFF) as u16
+    }
+
+    fn update_r16_stack(&mut self, r16stk: Register16Stack, value: u16) {
+        match r16stk {
+            Register16Stack::Af => self.state.set_reg_af(value),
+            Register16Stack::Bc => self.state.set_reg_bc(value),
+            Register16Stack::De => self.state.set_reg_de(value),
+            Register16Stack::Hl => self.state.set_reg_hl(value)
+        }
+    }
+
+    fn get_r16_stack(&self, r16stk: Register16Stack) -> u16 {
+        match r16stk {
+            Register16Stack::Af => self.state.reg_af(),
+            Register16Stack::Bc => self.state.reg_bc(),
+            Register16Stack::De => self.state.reg_de(),
+            Register16Stack::Hl => self.state.reg_hl()
+        }
     }
 
     fn update_r16_mem_u16(&mut self, r16mem: Register16Memory, value: u16) -> Result<(), Error> {

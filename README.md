@@ -25,66 +25,69 @@ A simple GameBoy emulator written in Rust just for fun
         - [x] ld a, \[r16mem\]
         - [x] ld \[imm16\], sp
         - [x] inc r16
-        - [ ] dec r16
+        - [x] dec r16
         - [x] add hl, r16
         - [x] inc r8
-        - [ ] dec r8
+        - [x] dec r8
         - [x] ld r8, imm8
         - [x] rlca
         - [ ] rrca
-        - [ ] rla
+        - [x] rla
         - [ ] rra
         - [ ] daa
         - [ ] cpl
         - [ ] scf
         - [ ] ccf
+        - [x] jr imm8
+        - [x] jr cond, imm8
+        - [ ] stop
     - [ ] Block 1: 8-Bit Register-to-Register Loads
-        - [ ] ld r8, r8
+        - [x] ld r8, r8
         - [ ] halt
     - [ ] Block 2: 8-Bit Arithmetic
-        - [ ] add a, r8
+        - [x] add a, r8
         - [ ] adc a, r8
-        - [ ] sub a, r8
+        - [x] sub a, r8
         - [ ] sbc a, r8
         - [ ] and a, r8
         - [x] xor a, r8
         - [ ] or a, r8
         - [ ] cp a, r8
     - [ ] Block 3
-        - [ ] add a, imm8
+        - [x] add a, imm8
         - [ ] adc a, imm8
-        - [ ] sub a, imm8
+        - [x] sub a, imm8
         - [ ] sbc a, imm8
         - [ ] and a, imm8
-        - [ ] xor a, imm8
+        - [x] xor a, imm8
         - [ ] or a, imm8
         - [ ] cp a, imm8
-        - [ ] ret cond
-        - [ ] ret
-        - [ ] reti
+        - [x] ret cond
+        - [x] ret
+        - [x] reti
         - [x] jp cond, imm16
         - [x] jp imm16
-        - [ ] jp hl
-        - [ ] call cond, imm16
-        - [ ] call imm16
+        - [x] jp hl
+        - [x] call cond, imm16
+        - [x] call imm16
         - [ ] rst tgt3
-        - [ ] pop r16stk
-        - [ ] push r16stk
-        - [ ] ldh \[c\], a
-        - [ ] ldh \[imm8\], a
-        - [ ] ld \[imm16\], a
-        - [ ] ldh a, \[c\]
-        - [ ] ldh a, \[imm8\]
-        - [ ] ld a, \[imm16\]
+        - [x] pop r16stk
+        - [x] push r16stk
+        - [x] ldh \[c\], a
+        - [x] ldh \[imm8\], a
+        - [x] ld \[imm16\], a
+        - [x] ldh a, \[c\]
+        - [x] ldh a, \[imm8\]
+        - [x] ld a, \[imm16\]
         - [ ] add sp, imm8
         - [ ] ld hl, sp + imm8
         - [ ] ld sp, hl
-        - [ ] di
-        - [ ] ei
+        - [x] di
+        - [x] ei
     - 0xCB Prefixed Instructions
-        - [ ] rlc r8
+        - [x] rlc r8
         - [ ] rrc r8
-        - [ ] rl r8
+        - [x] rl r8
         - [ ] rr r8
         - [ ] sla r8
         - [ ] sra r8
@@ -105,8 +108,15 @@ A simple GameBoy emulator written in Rust just for fun
     - [ ] Work RAM Bank 1
     - [ ] Echo RAM
     - [ ] OAM RAM
-    - [ ] HRAM
+    - [x] HRAM
     - [ ] Interrupt Enable Register
+- [ ] GUI
+    - [ ] Display
+    - [ ] Buttons
+    - [ ] Keyboard inputs
+- [ ] Graphics
+    - [ ] Reading Sprites
+    - [ ] ?
 - [ ] I/O Registers
     - [x]  Joypad Input
     - [x]  Serial transfer
@@ -114,7 +124,7 @@ A simple GameBoy emulator written in Rust just for fun
     - [ ]  Interrupts
     - [ ]  Audio
     - [ ]  Wave Pattern
-    - [ ]  LCD / Display
+    - [x]  LCD / Display
     - [ ]  ~~VRAM Bank Select~~ (CGB)
     - [ ]  Boot ROM Enable
     - [ ]  ~~VRAM DMA~~ (CGB)
@@ -137,4 +147,4 @@ A simple GameBoy emulator written in Rust just for fun
     - [x] Header Checksum
     - [x] Global Checksum
     - [x] Header Checksum Calculation
-    - [ ] Global Checksum Calculation
+    - [ ] Global Checksum Calculation (Optional)
