@@ -307,6 +307,12 @@ impl From<Target> for u8 {
     }
 }
 
+impl From<Target> for u16 {
+    fn from(value: Target) -> Self {
+        value.0 as u16
+    }
+}
+
 #[derive(Clone, Copy, PartialEq, Eq)]
 pub struct Imm8(u8);
 

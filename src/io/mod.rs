@@ -1,7 +1,4 @@
-use std::{
-    cell::{Ref, RefCell},
-    rc::Rc,
-};
+use std::{cell::RefCell, rc::Rc};
 
 use audio::Audio;
 use lcd::Lcd;
@@ -10,8 +7,8 @@ use serial::Serial;
 use crate::cpu::bus::Bus;
 
 pub mod audio;
-pub mod serial;
 pub mod lcd;
+pub mod serial;
 
 #[derive(Debug, Clone, Copy)]
 pub struct IORegister(u8);
@@ -35,7 +32,7 @@ pub struct IO {
     joypad_input: IORegister,
     serial: Serial,
     audio: Audio,
-    lcd: Lcd
+    lcd: Lcd,
 }
 
 impl IO {
@@ -44,7 +41,7 @@ impl IO {
             joypad_input: IORegister::new(),
             serial: Serial::new(),
             audio: Audio::new(),
-            lcd: Lcd::new()
+            lcd: Lcd::new(),
         }
     }
 }
@@ -67,11 +64,8 @@ impl Bus for SharedIO {
         let inner = self.inner.borrow();
 
         Ok(match address {
-            0xFF44 => {
-                inner.lcd.read_lcd_y()
-            },
+            0xFF44 => inner.lcd.read_lcd_y(),
             _ => {
-                unimplemented!("IO read from address 0x{:04x}", address);
                 return Err(crate::cpu::error::Error::MemoryFault(address));
             }
         })

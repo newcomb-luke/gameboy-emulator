@@ -1,11 +1,7 @@
 use std::{cell::RefCell, rc::Rc};
 
 use crate::{
-    boot::BootRom,
-    cartridge::Cartridge,
-    io::{SharedIO, IO},
-    memory::ram::HighRam,
-    ppu::vram::Vram,
+    boot::BootRom, cartridge::Cartridge, io::SharedIO, memory::ram::HighRam, ppu::vram::Vram,
 };
 
 use super::error::Error;

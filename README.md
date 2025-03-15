@@ -7,7 +7,7 @@ A simple GameBoy emulator written in Rust just for fun
     - [x] Cartridge header reading
     - [ ] Cartridge reading
     - [x] Instruction decoding
-    - [ ] Instruction execution
+    - [x] Instruction execution
     - [ ] Execute Boot ROM
     - [ ] Execute all cpu_instrs.gb tests
     - [ ] Execute dmg-acid2.gb
@@ -31,37 +31,37 @@ A simple GameBoy emulator written in Rust just for fun
         - [x] dec r8
         - [x] ld r8, imm8
         - [x] rlca
-        - [ ] rrca
+        - [x] rrca
         - [x] rla
-        - [ ] rra
-        - [ ] daa
-        - [ ] cpl
-        - [ ] scf
-        - [ ] ccf
+        - [x] rra
+        - [x] daa
+        - [x] cpl
+        - [x] scf
+        - [x] ccf
         - [x] jr imm8
         - [x] jr cond, imm8
         - [ ] stop
     - [ ] Block 1: 8-Bit Register-to-Register Loads
         - [x] ld r8, r8
         - [ ] halt
-    - [ ] Block 2: 8-Bit Arithmetic
+    - [x] Block 2: 8-Bit Arithmetic
         - [x] add a, r8
-        - [ ] adc a, r8
+        - [x] adc a, r8
         - [x] sub a, r8
-        - [ ] sbc a, r8
-        - [ ] and a, r8
+        - [x] sbc a, r8
+        - [x] and a, r8
         - [x] xor a, r8
-        - [ ] or a, r8
-        - [ ] cp a, r8
-    - [ ] Block 3
+        - [x] or a, r8
+        - [x] cp a, r8
+    - [x] Block 3
         - [x] add a, imm8
-        - [ ] adc a, imm8
+        - [x] adc a, imm8
         - [x] sub a, imm8
-        - [ ] sbc a, imm8
-        - [ ] and a, imm8
+        - [x] sbc a, imm8
+        - [x] and a, imm8
         - [x] xor a, imm8
-        - [ ] or a, imm8
-        - [ ] cp a, imm8
+        - [x] or a, imm8
+        - [x] cp a, imm8
         - [x] ret cond
         - [x] ret
         - [x] reti
@@ -70,7 +70,7 @@ A simple GameBoy emulator written in Rust just for fun
         - [x] jp hl
         - [x] call cond, imm16
         - [x] call imm16
-        - [ ] rst tgt3
+        - [x] rst tgt3
         - [x] pop r16stk
         - [x] push r16stk
         - [x] ldh \[c\], a
@@ -79,23 +79,23 @@ A simple GameBoy emulator written in Rust just for fun
         - [x] ldh a, \[c\]
         - [x] ldh a, \[imm8\]
         - [x] ld a, \[imm16\]
-        - [ ] add sp, imm8
-        - [ ] ld hl, sp + imm8
-        - [ ] ld sp, hl
+        - [x] add sp, imm8
+        - [x] ld hl, sp + imm8
+        - [x] ld sp, hl
         - [x] di
         - [x] ei
-    - 0xCB Prefixed Instructions
+    - [x] 0xCB Prefixed Instructions
         - [x] rlc r8
-        - [ ] rrc r8
+        - [x] rrc r8
         - [x] rl r8
-        - [ ] rr r8
-        - [ ] sla r8
-        - [ ] sra r8
-        - [ ] swap r8
-        - [ ] srl r8
+        - [x] rr r8
+        - [x] sla r8
+        - [x] sra r8
+        - [x] swap r8
+        - [x] srl r8
         - [x] bit b3, r8
-        - [ ] res b3, r8
-        - [ ] set b3, r8
+        - [x] res b3, r8
+        - [x] set b3, r8
 - [ ] Memory Map
     - [x] Boot ROM
     - [x] Cartrige ROM Bank 0
