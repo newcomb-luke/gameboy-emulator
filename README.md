@@ -111,8 +111,11 @@ A simple GameBoy emulator written in Rust just for fun
     - [x] HRAM
     - [ ] Interrupt Enable Register
 - [ ] GUI
-    - [ ] Display
+    - [x] Window
+    - [x] Device outline
+    - [x] Display
     - [ ] Buttons
+    - [ ] Decorative text / details
     - [ ] Keyboard inputs
 - [ ] Graphics
     - [ ] Reading Sprites
