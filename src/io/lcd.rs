@@ -1,8 +1,89 @@
 use super::IORegister;
 
+#[derive(Clone, Copy, PartialEq, Eq)]
+pub enum TileMapArea {
+    /// 9C00-9FFF
+    Upper,
+    /// 9800-9BFF
+    Lower
+}
+
+#[derive(Clone, Copy, PartialEq, Eq)]
+pub enum TileDataArea {
+    /// 8800-97FF
+    Upper,
+    /// 8000-8FFF
+    Lower
+}
+
+#[derive(Clone, Copy, PartialEq, Eq)]
+pub enum ObjSize {
+    /// 8x8
+    Single,
+    /// 8x16
+    Double
+}
+
+#[derive(Clone, Copy)]
+pub struct LcdControl(IORegister);
+
+impl LcdControl {
+    pub fn new() -> Self {
+        Self(IORegister::new())
+    }
+
+    pub fn lcd_enabled(&self) -> bool {
+        (self.0.0 >> 7) != 0
+    }
+
+    pub fn window_tile_map_area(&self) -> TileMapArea {
+        if ((self.0.0 >> 6) & 1) == 0 {
+            TileMapArea::Lower
+        } else {
+            TileMapArea::Upper
+        }
+    }
+
+    pub fn window_enabled(&self) -> bool {
+        ((self.0.0 >> 5) & 1) != 0
+    }
+
+    pub fn bg_and_window_tile_data_area(&self) -> TileDataArea {
+        if ((self.0.0 >> 4) & 1) == 0 {
+            TileDataArea::Upper
+        } else {
+            TileDataArea::Lower
+        }
+    }
+
+    pub fn bg_tile_map_area(&self) -> TileMapArea {
+        if ((self.0.0 >> 3) & 1) == 0 {
+            TileMapArea::Lower
+        } else {
+            TileMapArea::Upper
+        }
+    }
+
+    pub fn obj_size(&self) -> ObjSize {
+        if ((self.0.0 >> 2) & 1) == 0 {
+            ObjSize::Single
+        } else {
+            ObjSize::Double
+        }
+    }
+
+    pub fn obj_enabled(&self) -> bool {
+        ((self.0.0 >> 1) & 1) != 0
+    }
+
+    pub fn bg_and_window_enabled(&self) -> bool {
+        (self.0.0 & 1) != 0
+    }
+}
+
 #[derive(Clone, Copy)]
 pub struct Lcd {
-    control: IORegister,
+    control: LcdControl,
     lcd_y: IORegister,
     lcd_y_compare: IORegister,
     status: IORegister,
@@ -18,7 +99,7 @@ pub struct Lcd {
 impl Lcd {
     pub fn new() -> Self {
         Self {
-            control: IORegister::new(),
+            control: LcdControl::new(),
             lcd_y: IORegister::new(),
             lcd_y_compare: IORegister::new(),
             status: IORegister::new(),
@@ -33,18 +114,24 @@ impl Lcd {
     }
 
     pub fn read_control(&self) -> u8 {
-        self.control.read()
+        self.control.0.read()
     }
 
     pub fn write_control(&mut self, value: u8) {
-        self.control.write(value);
+        self.control.0.write(value);
+    }
+
+    pub fn get_control(&self) -> &LcdControl {
+        &self.control
     }
 
     pub fn read_lcd_y(&self) -> u8 {
         self.lcd_y.read()
     }
 
-    pub fn write_lcd_y(&mut self, _value: u8) {}
+    pub fn write_lcd_y(&mut self, value: u8) {
+        self.lcd_y.write(value);
+    }
 
     pub fn read_lcd_y_compare(&self) -> u8 {
         self.lcd_y_compare.read()

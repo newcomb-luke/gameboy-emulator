@@ -4,21 +4,14 @@ use std::path::Path;
 
 use eframe::egui::{self, load::SizedTexture, Color32, ColorImage, CornerRadius};
 use gameboy_emulator::{
-    boot::{BootRom, BootRomReader},
-    cartridge::Cartridge,
-    cpu::{
-        bus::{MainBus, SharedBus},
-        Cpu,
-    },
-    io::SharedIO,
-    ppu::{vram::Vram, Ppu},
+    boot::{BootRom, BootRomReader}, cartridge::Cartridge, Emulator, DISPLAY_SIZE_PIXELS
 };
 
 const GAMEBOY_HEIGHT: f32 = 148.0; // mm
 const GAMEBOY_WIDTH: f32 = 90.0; // mm
 const DISPLAY_HEIGHT: f32 = 47.0; // mm
 const DISPLAY_WIDTH: f32 = 43.0; // mm
-const SCALE_FACTOR: f32 = 5.0;
+const SCALE_FACTOR: f32 = 6.0;
 
 fn main() -> eframe::Result {
     let boot_rom = read_boot_rom("dmg_boot.bin");
@@ -48,15 +41,9 @@ fn main() -> eframe::Result {
         header.read_global_checksum()
     );
 
-    let vram = Vram::new();
-    let shared_io = SharedIO::new();
+    let mut emulator = Emulator::new(boot_rom, cartridge);
 
-    let bus = MainBus::new(boot_rom, cartridge, vram.clone(), shared_io);
-    let shared_bus = SharedBus::new(bus);
-
-    let mut cpu = Cpu::new(shared_bus);
-
-    let mut ppu = Ppu::new(vram);
+    emulator.add_breakpoint(0x0060);
 
     let options = eframe::NativeOptions {
         viewport: egui::ViewportBuilder::default()
@@ -69,24 +56,26 @@ fn main() -> eframe::Result {
         options,
         Box::new(|cc| {
             egui_extras::install_image_loaders(&cc.egui_ctx);
-            Ok(Box::new(EmuApp::new(cc)))
+            Ok(Box::new(EmuApp::new(cc, emulator)))
         }),
     )
 }
 
 struct EmuApp {
+    emulator: Emulator,
     display_texture: egui::TextureHandle,
 }
 
 impl EmuApp {
-    pub fn new(cc: &eframe::CreationContext<'_>) -> Self {
-        let display_image = ColorImage::new([160, 144], Color32::from_rgb(133, 159, 88));
+    pub fn new(cc: &eframe::CreationContext<'_>, emulator: Emulator) -> Self {
+        let display_image = ColorImage::new(*DISPLAY_SIZE_PIXELS, Color32::from_rgb(133, 159, 88));
 
         Self {
+            emulator,
             display_texture: cc.egui_ctx.load_texture(
                 "display",
                 display_image,
-                egui::TextureOptions::LINEAR,
+                egui::TextureOptions::NEAREST,
             ),
         }
     }
@@ -108,14 +97,42 @@ impl eframe::App for EmuApp {
             stroke: egui::Stroke::new(2.0, Color32::GRAY),
         };
 
+        let mut breakpoint_reached = false;
+
+        for _ in 0..200 {
+            if let Some(_) = self.emulator.breakpoint_reached() {
+                breakpoint_reached = true;
+                break;
+            } else {
+                self.emulator.step().unwrap();
+
+                let pixels = self.emulator.get_pixels();
+
+                self.display_texture.set(
+                    egui::ColorImage {
+                        size: *DISPLAY_SIZE_PIXELS,
+                        pixels
+                    },
+                    egui::TextureOptions::NEAREST
+                );
+            }
+        }
+
         egui::CentralPanel::default()
             .frame(my_frame)
             .show(ctx, |ui| {
                 let display_image = egui::Image::new(SizedTexture::new(
                     &self.display_texture,
-                    [DISPLAY_HEIGHT * SCALE_FACTOR, DISPLAY_WIDTH * SCALE_FACTOR],
+                    [DISPLAY_HEIGHT * (SCALE_FACTOR+2.0), DISPLAY_WIDTH * (SCALE_FACTOR+2.0)],
                 ));
                 ui.vertical_centered(|ui| {
+                    if breakpoint_reached {
+                        ui.label("Breakpoint reached.");
+                    }
+
+                    let state = self.emulator.execution_state();
+                    ui.label(format!("{}", state));
+
                     ui.add_space(60.0);
                     ui.add(display_image);
                 });

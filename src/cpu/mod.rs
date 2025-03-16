@@ -32,6 +32,10 @@ impl<B: Bus> Cpu<B> {
         }
     }
 
+    pub fn execution_state(&self) -> SharedExecutionState {
+        self.state.clone()
+    }
+
     pub fn execute_one(&mut self) -> Result<(), Error> {
         let current_instruction = self.decoder.decode_one(&self.state, &self.bus)?;
         let mut next_instruction_address = self
@@ -39,7 +43,7 @@ impl<B: Bus> Cpu<B> {
             .instruction_pointer()
             .wrapping_add(current_instruction.length());
 
-        println!("{:#?}", current_instruction);
+        // println!("{:#?}", current_instruction);
 
         match current_instruction {
             Instruction::Nop => {}
@@ -328,7 +332,7 @@ impl<B: Bus> Cpu<B> {
 
         self.state.set_instruction_pointer(next_instruction_address);
 
-        println!("{}", self.state);
+        // println!("{}", self.state);
 
         Ok(())
     }

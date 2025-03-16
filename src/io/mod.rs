@@ -57,6 +57,11 @@ impl SharedIO {
             inner: Rc::new(RefCell::new(IO::new())),
         }
     }
+    
+    pub fn with_lcd_mut<F>(&self, f: F) where F: FnOnce(&mut Lcd) -> () {
+        let mut inner = self.inner.borrow_mut();
+        f(&mut inner.lcd)
+    }
 }
 
 impl Bus for SharedIO {
@@ -64,7 +69,37 @@ impl Bus for SharedIO {
         let inner = self.inner.borrow();
 
         Ok(match address {
+            0xFF40 => {
+                inner.lcd.read_control()
+            }
+            0xFF41 => {
+                inner.lcd.read_status()
+            }
+            0xFF42 => {
+                inner.lcd.read_scroll_y()
+            }
+            0xFF43 => {
+                inner.lcd.read_scroll_x()
+            }
             0xFF44 => inner.lcd.read_lcd_y(),
+            0xFF45 => {
+                inner.lcd.read_lcd_y_compare()
+            }
+            0xFF47 => {
+                inner.lcd.read_background_palette()
+            }
+            0xFF48 => {
+                inner.lcd.read_obj_palette_0()
+            }
+            0xFF49 => {
+                inner.lcd.read_obj_palette_1()
+            }
+            0xFF4A => {
+                inner.lcd.read_window_y()
+            }
+            0xFF4B => {
+                inner.lcd.read_window_x()
+            }
             _ => {
                 return Err(crate::cpu::error::Error::MemoryFault(address));
             }
@@ -122,7 +157,7 @@ impl Bus for SharedIO {
                 inner.lcd.write_scroll_x(data);
             }
             0xFF44 => {
-                inner.lcd.write_lcd_y(data);
+                // Writing is not enabled for LCD Y register
             }
             0xFF45 => {
                 inner.lcd.write_lcd_y_compare(data);

@@ -11,14 +11,56 @@ impl Tile {
     pub fn zeroed() -> Self {
         Self { data: [0u8; 16] }
     }
+
+    pub fn data(&self) -> &[u8; 16] {
+        &self.data
+    }
+
+    pub fn as_color_ids(&self) -> [[u8; 8]; 8] {
+        let mut color_ids = [[0u8; 8]; 8];
+
+        for row_idx in 0..8 {
+            let byte_offset = row_idx * 2;
+            let row = (self.data[byte_offset], self.data[byte_offset + 1]);
+
+            for col_idx in 0..8 {
+                let col_color_id = ((row.0 >> (7 - col_idx)) & 1) | (((row.1 >> (7 - col_idx)) & 1) << 1);
+                color_ids[row_idx][col_idx] = col_color_id;
+            }
+        }
+
+        color_ids
+    }
+}
+
+impl From<[u8; 16]> for Tile {
+    fn from(value: [u8; 16]) -> Self {
+        Self { data: value }
+    }
 }
 
 #[derive(Debug, Clone, Copy)]
 pub struct TileId(u8);
 
 impl TileId {
+    pub fn new(value: u8) -> Self {
+        Self(value)
+    }
+
     pub fn zeroed() -> Self {
         Self(0)
+    }
+}
+
+impl From<u8> for TileId {
+    fn from(value: u8) -> Self {
+        Self(value)
+    }
+}
+
+impl From<TileId> for u8 {
+    fn from(value: TileId) -> Self {
+        value.0
     }
 }
 
@@ -49,9 +91,27 @@ impl Vram {
     const TILE_MAP_SIZE: u16 = 0x0400;
 
     pub fn new() -> Self {
+        let vram_bank = VramBank::zeroed();
+
         Self {
-            inner: Rc::new(RefCell::new(VramBank::zeroed())),
+            inner: Rc::new(RefCell::new(vram_bank)),
         }
+    }
+
+    pub fn get_tile(&self, id: TileId) -> Tile {
+        let inner = self.inner.borrow();
+
+        inner.tiles[id.0 as usize]
+    }
+
+    pub fn get_map_0(&self) -> [TileId; 1024] {
+        let inner = self.inner.borrow();
+        inner.map0
+    }
+
+    pub fn get_map_1(&self) -> [TileId; 1024] {
+        let inner = self.inner.borrow();
+        inner.map1
     }
 }
 
