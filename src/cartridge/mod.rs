@@ -6,19 +6,19 @@ mod error;
 
 #[derive(Debug, Clone)]
 pub struct Cartridge {
-    bank0: [u8; 512],
-    bank1: [u8; 512],
+    bank0: [u8; 16 * 1024],
+    bank1: [u8; 16 * 1024],
     header: CartridgeHeader,
 }
 
 impl Cartridge {
     pub fn read(reader: &mut impl Read) -> Result<Self, Error> {
-        let mut bank0 = [0u8; 512];
+        let mut bank0 = [0u8; 16 * 1024];
         reader.read_exact(&mut bank0).map_err(|e| Error::from(e))?;
 
         let header = CartridgeHeaderReader::read(&bank0)?;
 
-        let mut bank1 = [0u8; 512];
+        let mut bank1 = [0u8; 16 * 1024];
         reader.read_exact(&mut bank1).map_err(|e| Error::from(e))?;
 
         Ok(Self {
@@ -32,11 +32,11 @@ impl Cartridge {
         &self.header
     }
 
-    pub fn bank0(&self) -> &[u8; 512] {
+    pub fn bank0(&self) -> &[u8; 16 * 1024] {
         &self.bank0
     }
 
-    pub fn bank1(&self) -> &[u8; 512] {
+    pub fn bank1(&self) -> &[u8; 16 * 1024] {
         &self.bank1
     }
 }

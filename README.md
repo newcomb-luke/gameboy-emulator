@@ -1,6 +1,13 @@
 # gameboy-emulator
 A simple GameBoy emulator written in Rust just for fun
 
+## Current State:
+
+The emulator can make it through the Boot ROM successfully and enter a game. The Nintendo logo scrolls down from the top of the screen.
+Currently drawing the screen is slow, and will need to be improved.
+
+![Screenshot of emulator](images/progress-screenshot.png)
+
 ## Progress:
 
 - [ ] MVP
@@ -8,7 +15,7 @@ A simple GameBoy emulator written in Rust just for fun
     - [ ] Cartridge reading
     - [x] Instruction decoding
     - [x] Instruction execution
-    - [ ] Execute Boot ROM
+    - [x] Execute Boot ROM
     - [ ] Execute all cpu_instrs.gb tests
     - [ ] Execute dmg-acid2.gb
     - [ ] Play Tetris
@@ -103,11 +110,11 @@ A simple GameBoy emulator written in Rust just for fun
     - [ ] Cartridge ROM Bank Swapping
     - [x] VRAM
     - [ ] Cartridge RAM
-    - [ ] Cartridge RAM Bank Swapping
-    - [ ] Work RAM Bank 0
-    - [ ] Work RAM Bank 1
+    - [ ] ~~Cartridge RAM Bank Swapping~~
+    - [x] Work RAM Bank 0
+    - [x] Work RAM Bank 1
     - [ ] Echo RAM
-    - [ ] OAM RAM
+    - [x] OAM RAM
     - [x] HRAM
     - [ ] Interrupt Enable Register
 - [ ] GUI
@@ -118,8 +125,17 @@ A simple GameBoy emulator written in Rust just for fun
     - [ ] Decorative text / details
     - [ ] Keyboard inputs
 - [ ] Graphics
-    - [ ] Reading Sprites
-    - [ ] ?
+    - [x] Reading tiles from VRAM
+    - [x] Placing tiles based on tile map
+    - [x] Display background
+    - [ ] Display window
+    - [x] Scroll movement
+    - [ ] Window movement
+    - [ ] VRAM addressing modes
+    - [ ] Read palette data
+    - [x] Display tile
+    - [ ] Read object attributes
+    - [ ] Display objects
 - [ ] I/O Registers
     - [x]  Joypad Input
     - [x]  Serial transfer
@@ -129,7 +145,7 @@ A simple GameBoy emulator written in Rust just for fun
     - [ ]  Wave Pattern
     - [x]  LCD / Display
     - [ ]  ~~VRAM Bank Select~~ (CGB)
-    - [ ]  Boot ROM Enable
+    - [x]  Boot ROM Enable
     - [ ]  ~~VRAM DMA~~ (CGB)
     - [ ]  ~~LCD Color Palettes~~ (CGB)
     - [ ]  ~~WRAM Bank Select~~ (CGB)

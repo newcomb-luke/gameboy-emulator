@@ -4,8 +4,6 @@ use audio::Audio;
 use lcd::Lcd;
 use serial::Serial;
 
-use crate::cpu::bus::Bus;
-
 pub mod audio;
 pub mod lcd;
 pub mod serial;
@@ -33,6 +31,7 @@ pub struct IO {
     serial: Serial,
     audio: Audio,
     lcd: Lcd,
+    boot_rom_enable: IORegister,
 }
 
 impl IO {
@@ -42,6 +41,7 @@ impl IO {
             serial: Serial::new(),
             audio: Audio::new(),
             lcd: Lcd::new(),
+            boot_rom_enable: IORegister::new(),
         }
     }
 }
@@ -57,60 +57,43 @@ impl SharedIO {
             inner: Rc::new(RefCell::new(IO::new())),
         }
     }
-    
-    pub fn with_lcd_mut<F>(&self, f: F) where F: FnOnce(&mut Lcd) -> () {
+
+    pub fn with_lcd_mut<F>(&self, f: F)
+    where
+        F: FnOnce(&mut Lcd) -> (),
+    {
         let mut inner = self.inner.borrow_mut();
         f(&mut inner.lcd)
     }
-}
 
-impl Bus for SharedIO {
-    fn read_u8(&self, address: u16) -> Result<u8, crate::cpu::error::Error> {
+    pub fn boot_rom_enable(&self) -> u8 {
+        let inner = self.inner.borrow();
+        inner.boot_rom_enable.0
+    }
+
+    pub fn read_u8(&self, address: u16) -> Result<u8, crate::cpu::error::Error> {
         let inner = self.inner.borrow();
 
         Ok(match address {
-            0xFF40 => {
-                inner.lcd.read_control()
-            }
-            0xFF41 => {
-                inner.lcd.read_status()
-            }
-            0xFF42 => {
-                inner.lcd.read_scroll_y()
-            }
-            0xFF43 => {
-                inner.lcd.read_scroll_x()
-            }
+            0xFF40 => inner.lcd.read_control(),
+            0xFF41 => inner.lcd.read_status(),
+            0xFF42 => inner.lcd.read_scroll_y(),
+            0xFF43 => inner.lcd.read_scroll_x(),
             0xFF44 => inner.lcd.read_lcd_y(),
-            0xFF45 => {
-                inner.lcd.read_lcd_y_compare()
-            }
-            0xFF47 => {
-                inner.lcd.read_background_palette()
-            }
-            0xFF48 => {
-                inner.lcd.read_obj_palette_0()
-            }
-            0xFF49 => {
-                inner.lcd.read_obj_palette_1()
-            }
-            0xFF4A => {
-                inner.lcd.read_window_y()
-            }
-            0xFF4B => {
-                inner.lcd.read_window_x()
-            }
+            0xFF45 => inner.lcd.read_lcd_y_compare(),
+            0xFF47 => inner.lcd.read_background_palette(),
+            0xFF48 => inner.lcd.read_obj_palette_0(),
+            0xFF49 => inner.lcd.read_obj_palette_1(),
+            0xFF4A => inner.lcd.read_window_y(),
+            0xFF4B => inner.lcd.read_window_x(),
+            0xFF50 => inner.boot_rom_enable.read(),
             _ => {
                 return Err(crate::cpu::error::Error::MemoryFault(address));
             }
         })
     }
 
-    fn read_u16(&self, address: u16) -> Result<u16, crate::cpu::error::Error> {
-        todo!("IO.read_u16(0x{:04x})", address);
-    }
-
-    fn write_u8(&self, address: u16, data: u8) -> Result<(), crate::cpu::error::Error> {
+    pub fn write_u8(&self, address: u16, data: u8) -> Result<(), crate::cpu::error::Error> {
         let mut inner = self.inner.borrow_mut();
 
         match address {
@@ -177,16 +160,14 @@ impl Bus for SharedIO {
             0xFF4B => {
                 inner.lcd.write_window_x(data);
             }
+            0xFF50 => {
+                inner.boot_rom_enable.write(data);
+            }
             _ => {
                 return Err(crate::cpu::error::Error::MemoryFault(address));
             }
         }
 
         Ok(())
-    }
-
-    fn write_u16(&self, address: u16, data: u16) -> Result<(), crate::cpu::error::Error> {
-        self.write_u8(address + 1, (data >> 8) as u8)?;
-        self.write_u8(address, (data & 0xFF) as u8)
     }
 }

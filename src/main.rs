@@ -4,7 +4,9 @@ use std::path::Path;
 
 use eframe::egui::{self, load::SizedTexture, Color32, ColorImage, CornerRadius};
 use gameboy_emulator::{
-    boot::{BootRom, BootRomReader}, cartridge::Cartridge, Emulator, DISPLAY_SIZE_PIXELS
+    boot::{BootRom, BootRomReader},
+    cartridge::Cartridge,
+    Emulator, DISPLAY_SIZE_PIXELS,
 };
 
 const GAMEBOY_HEIGHT: f32 = 148.0; // mm
@@ -17,33 +19,7 @@ fn main() -> eframe::Result {
     let boot_rom = read_boot_rom("dmg_boot.bin");
     let cartridge = read_cartridge("tests/roms/dmg-acid2.gb");
 
-    let header = cartridge.header();
-
-    println!("Title: {}", header.title());
-    println!("Manufacturer: {:#?}", header.manufacturer_code());
-    println!("Licensee: {}", header.licensee());
-    println!("Type: {:#?}", header.cartridge_type());
-    println!("ROM Size: {:#?}", header.rom_size());
-    println!("RAM Size: {:#?}", header.ram_size());
-    println!("Destination code: {:#?}", header.destination_code());
-    println!("Version number: {:#?}", header.version_number());
-    println!(
-        "Header checksum (read): {:02x}",
-        header.read_header_checksum()
-    );
-    println!(
-        "Header checksum (computed): {:02x}",
-        header.computed_header_checksum()
-    );
-    println!("Header checksum valid: {}", header.header_checksum_valid());
-    println!(
-        "Global checksum (read): {:04x}",
-        header.read_global_checksum()
-    );
-
-    let mut emulator = Emulator::new(boot_rom, cartridge);
-
-    emulator.add_breakpoint(0x0060);
+    let emulator = Emulator::new(boot_rom, cartridge);
 
     let options = eframe::NativeOptions {
         viewport: egui::ViewportBuilder::default()
@@ -99,22 +75,24 @@ impl eframe::App for EmuApp {
 
         let mut breakpoint_reached = false;
 
-        for _ in 0..200 {
+        for i in 0..200 {
             if let Some(_) = self.emulator.breakpoint_reached() {
                 breakpoint_reached = true;
                 break;
             } else {
                 self.emulator.step().unwrap();
 
-                let pixels = self.emulator.get_pixels();
+                if (i % 4) == 0 {
+                    let pixels = self.emulator.get_pixels();
 
-                self.display_texture.set(
-                    egui::ColorImage {
-                        size: *DISPLAY_SIZE_PIXELS,
-                        pixels
-                    },
-                    egui::TextureOptions::NEAREST
-                );
+                    self.display_texture.set(
+                        egui::ColorImage {
+                            size: *DISPLAY_SIZE_PIXELS,
+                            pixels,
+                        },
+                        egui::TextureOptions::NEAREST,
+                    );
+                }
             }
         }
 
@@ -123,7 +101,10 @@ impl eframe::App for EmuApp {
             .show(ctx, |ui| {
                 let display_image = egui::Image::new(SizedTexture::new(
                     &self.display_texture,
-                    [DISPLAY_HEIGHT * (SCALE_FACTOR+2.0), DISPLAY_WIDTH * (SCALE_FACTOR+2.0)],
+                    [
+                        DISPLAY_HEIGHT * (SCALE_FACTOR + 2.0),
+                        DISPLAY_WIDTH * (SCALE_FACTOR + 2.0),
+                    ],
                 ));
                 ui.vertical_centered(|ui| {
                     if breakpoint_reached {
@@ -137,7 +118,7 @@ impl eframe::App for EmuApp {
                     ui.add(display_image);
                 });
             });
-        
+
         ctx.request_repaint();
     }
 }

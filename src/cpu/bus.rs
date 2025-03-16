@@ -1,7 +1,11 @@
 use std::{cell::RefCell, rc::Rc};
 
 use crate::{
-    boot::BootRom, cartridge::Cartridge, io::SharedIO, memory::ram::HighRam, ppu::vram::Vram,
+    boot::BootRom,
+    cartridge::Cartridge,
+    io::SharedIO,
+    memory::ram::{HighRam, WorkRam},
+    ppu::{oam::ObjectAttributeMemory, vram::Vram},
 };
 
 use super::error::Error;
@@ -49,27 +53,35 @@ pub struct MainBus {
     boot_rom: BootRom,
     cartridge: Cartridge,
     vram: Vram,
+    work_ram: WorkRam,
+    oam: ObjectAttributeMemory,
     io: SharedIO,
     high_ram: HighRam,
-    boot_rom_enabled: bool,
 }
 
 impl MainBus {
-    pub fn new(boot_rom: BootRom, cartridge: Cartridge, vram: Vram, io: SharedIO) -> Self {
+    pub fn new(
+        boot_rom: BootRom,
+        cartridge: Cartridge,
+        vram: Vram,
+        io: SharedIO,
+        oam: ObjectAttributeMemory,
+    ) -> Self {
         Self {
             boot_rom,
             cartridge,
             vram,
+            work_ram: WorkRam::new(),
+            oam,
             io,
             high_ram: HighRam::new(),
-            boot_rom_enabled: true,
         }
     }
 
     fn read_u8(&self, address: u16) -> Result<u8, Error> {
         Ok(match address {
             0x0000..=0x00FF => {
-                if self.boot_rom_enabled {
+                if self.boot_rom_enabled() {
                     self.boot_rom.contents()[address as usize]
                 } else {
                     self.cartridge.bank0()[address as usize]
@@ -78,6 +90,8 @@ impl MainBus {
             0x0100..=0x3FFF => self.cartridge.bank0()[address as usize],
             0x4000..=0x7FFF => self.cartridge.bank1()[(address as usize) - 0x4000],
             0x8000..=0x9FFF => self.vram.read_u8(address)?,
+            0xC000..=0xDFFF => self.work_ram.read_u8(address),
+            0xFE00..=0xFE9F => self.oam.read_u8(address),
             0xFF00..=0xFF7F => self.io.read_u8(address)?,
             0xFF80..=0xFFFE => self.high_ram.read_u8(address),
             _ => {
@@ -97,6 +111,8 @@ impl MainBus {
         Ok(match address {
             0x0000..=0x7FFF => {}
             0x8000..=0x9FFF => self.vram.write_u8(address, data)?,
+            0xC000..=0xDFFF => self.work_ram.write_u8(address, data),
+            0xFE00..=0xFE9F => self.oam.write_u8(address, data),
             0xFF00..=0xFF7F => self.io.write_u8(address, data)?,
             0xFF80..=0xFFFE => self.high_ram.write_u8(address, data),
             _ => {
@@ -108,5 +124,9 @@ impl MainBus {
     fn write_u16(&mut self, address: u16, data: u16) -> Result<(), Error> {
         self.write_u8(address + 1, (data >> 8) as u8)?;
         self.write_u8(address, (data & 0xFF) as u8)
+    }
+
+    fn boot_rom_enabled(&self) -> bool {
+        self.io.boot_rom_enable() == 0
     }
 }

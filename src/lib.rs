@@ -1,9 +1,18 @@
 use boot::BootRom;
 use cartridge::Cartridge;
-use cpu::{bus::{MainBus, SharedBus}, error::Error, execution_state::SharedExecutionState, Cpu};
+use cpu::{
+    bus::{MainBus, SharedBus},
+    error::Error,
+    execution_state::SharedExecutionState,
+    Cpu,
+};
 use eframe::egui::Color32;
 use io::SharedIO;
-use ppu::{vram::Vram, Ppu};
+use ppu::{
+    oam::ObjectAttributeMemory,
+    vram::Vram,
+    Ppu,
+};
 
 pub mod boot;
 pub mod cartridge;
@@ -17,9 +26,9 @@ pub const DISPLAY_WIDTH_PIXELS: usize = 160;
 pub const DISPLAY_SIZE_PIXELS: &'static [usize; 2] = &[DISPLAY_WIDTH_PIXELS, DISPLAY_HEIGHT_PIXELS];
 
 pub const DARKEST_COLOR: Color32 = Color32::from_rgb(8, 24, 32);
-pub const DARKER_COLOR: Color32 = Color32::from_rgb(52 , 104, 86);
-pub const LIGHTER_COLOR: Color32 = Color32::from_rgb(136 , 192, 112);
-pub const LIGHTEST_COLOR: Color32 = Color32::from_rgb(224 , 248, 208);
+pub const DARKER_COLOR: Color32 = Color32::from_rgb(52, 104, 86);
+pub const LIGHTER_COLOR: Color32 = Color32::from_rgb(136, 192, 112);
+pub const LIGHTEST_COLOR: Color32 = Color32::from_rgb(224, 248, 208);
 pub const OFF_COLOR: Color32 = Color32::from_rgb(133, 159, 88);
 
 pub struct Emulator {
@@ -27,26 +36,33 @@ pub struct Emulator {
     cpu: Cpu<SharedBus>,
     ppu: Ppu,
     empty_display: Vec<Color32>,
-    breakpoints: Vec<u16>
+    breakpoints: Vec<u16>,
 }
 
 impl Emulator {
     pub fn new(boot_rom: BootRom, cartridge: Cartridge) -> Self {
         let vram = Vram::new();
         let shared_io = SharedIO::new();
+        let oam = ObjectAttributeMemory::new();
 
-        let bus = MainBus::new(boot_rom, cartridge, vram.clone(), shared_io.clone());
+        let bus = MainBus::new(
+            boot_rom,
+            cartridge,
+            vram.clone(),
+            shared_io.clone(),
+            oam.clone(),
+        );
         let shared_bus = SharedBus::new(bus);
 
         let cpu = Cpu::new(shared_bus);
-        let ppu = Ppu::new(vram, shared_io.clone());
+        let ppu = Ppu::new(vram, shared_io.clone(), oam);
 
         Self {
             shared_io,
             cpu,
             ppu,
             empty_display: Self::off_display(),
-            breakpoints: Vec::new()
+            breakpoints: Vec::new(),
         }
     }
 

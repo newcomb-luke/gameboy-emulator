@@ -5,7 +5,7 @@ pub enum TileMapArea {
     /// 9C00-9FFF
     Upper,
     /// 9800-9BFF
-    Lower
+    Lower,
 }
 
 #[derive(Clone, Copy, PartialEq, Eq)]
@@ -13,7 +13,7 @@ pub enum TileDataArea {
     /// 8800-97FF
     Upper,
     /// 8000-8FFF
-    Lower
+    Lower,
 }
 
 #[derive(Clone, Copy, PartialEq, Eq)]
@@ -21,7 +21,7 @@ pub enum ObjSize {
     /// 8x8
     Single,
     /// 8x16
-    Double
+    Double,
 }
 
 #[derive(Clone, Copy)]
@@ -33,11 +33,11 @@ impl LcdControl {
     }
 
     pub fn lcd_enabled(&self) -> bool {
-        (self.0.0 >> 7) != 0
+        (self.0 .0 >> 7) != 0
     }
 
     pub fn window_tile_map_area(&self) -> TileMapArea {
-        if ((self.0.0 >> 6) & 1) == 0 {
+        if ((self.0 .0 >> 6) & 1) == 0 {
             TileMapArea::Lower
         } else {
             TileMapArea::Upper
@@ -45,11 +45,11 @@ impl LcdControl {
     }
 
     pub fn window_enabled(&self) -> bool {
-        ((self.0.0 >> 5) & 1) != 0
+        ((self.0 .0 >> 5) & 1) != 0
     }
 
     pub fn bg_and_window_tile_data_area(&self) -> TileDataArea {
-        if ((self.0.0 >> 4) & 1) == 0 {
+        if ((self.0 .0 >> 4) & 1) == 0 {
             TileDataArea::Upper
         } else {
             TileDataArea::Lower
@@ -57,7 +57,7 @@ impl LcdControl {
     }
 
     pub fn bg_tile_map_area(&self) -> TileMapArea {
-        if ((self.0.0 >> 3) & 1) == 0 {
+        if ((self.0 .0 >> 3) & 1) == 0 {
             TileMapArea::Lower
         } else {
             TileMapArea::Upper
@@ -65,7 +65,7 @@ impl LcdControl {
     }
 
     pub fn obj_size(&self) -> ObjSize {
-        if ((self.0.0 >> 2) & 1) == 0 {
+        if ((self.0 .0 >> 2) & 1) == 0 {
             ObjSize::Single
         } else {
             ObjSize::Double
@@ -73,11 +73,11 @@ impl LcdControl {
     }
 
     pub fn obj_enabled(&self) -> bool {
-        ((self.0.0 >> 1) & 1) != 0
+        ((self.0 .0 >> 1) & 1) != 0
     }
 
     pub fn bg_and_window_enabled(&self) -> bool {
-        (self.0.0 & 1) != 0
+        (self.0 .0 & 1) != 0
     }
 }
 

@@ -1,7 +1,5 @@
 use std::{cell::RefCell, rc::Rc};
 
-use crate::cpu::bus::Bus;
-
 #[derive(Debug, Clone, Copy)]
 pub struct Tile {
     data: [u8; 16],
@@ -24,7 +22,8 @@ impl Tile {
             let row = (self.data[byte_offset], self.data[byte_offset + 1]);
 
             for col_idx in 0..8 {
-                let col_color_id = ((row.0 >> (7 - col_idx)) & 1) | (((row.1 >> (7 - col_idx)) & 1) << 1);
+                let col_color_id =
+                    ((row.0 >> (7 - col_idx)) & 1) | (((row.1 >> (7 - col_idx)) & 1) << 1);
                 color_ids[row_idx][col_idx] = col_color_id;
             }
         }
@@ -113,10 +112,8 @@ impl Vram {
         let inner = self.inner.borrow();
         inner.map1
     }
-}
 
-impl Bus for Vram {
-    fn read_u8(&self, address: u16) -> Result<u8, crate::cpu::error::Error> {
+    pub fn read_u8(&self, address: u16) -> Result<u8, crate::cpu::error::Error> {
         let vram_addr = address - 0x8000;
 
         Ok(match vram_addr {
@@ -140,14 +137,7 @@ impl Bus for Vram {
         })
     }
 
-    fn read_u16(&self, address: u16) -> Result<u16, crate::cpu::error::Error> {
-        let lower = self.read_u8(address)?;
-        let higher = self.read_u8(address + 1)?;
-
-        Ok(((higher as u16) << 8) | lower as u16)
-    }
-
-    fn write_u8(&self, address: u16, data: u8) -> Result<(), crate::cpu::error::Error> {
+    pub fn write_u8(&self, address: u16, data: u8) -> Result<(), crate::cpu::error::Error> {
         let vram_addr = address - 0x8000;
 
         match vram_addr {
@@ -172,10 +162,5 @@ impl Bus for Vram {
         }
 
         Ok(())
-    }
-
-    fn write_u16(&self, address: u16, data: u16) -> Result<(), crate::cpu::error::Error> {
-        self.write_u8(address + 1, (data >> 8) as u8)?;
-        self.write_u8(address, (data & 0xFF) as u8)
     }
 }
