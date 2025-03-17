@@ -10,7 +10,7 @@ pub struct BootRom {
 }
 
 impl BootRom {
-    pub fn new(contents: [u8; 256]) -> Self {
+    pub const fn new(contents: [u8; 256]) -> Self {
         Self { contents }
     }
 

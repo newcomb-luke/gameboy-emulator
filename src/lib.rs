@@ -8,11 +8,7 @@ use cpu::{
 };
 use eframe::egui::Color32;
 use io::SharedIO;
-use ppu::{
-    oam::ObjectAttributeMemory,
-    vram::Vram,
-    Ppu,
-};
+use ppu::{oam::ObjectAttributeMemory, vram::Vram, Ppu};
 
 pub mod boot;
 pub mod cartridge;

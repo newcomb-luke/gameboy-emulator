@@ -1,7 +1,8 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")] // Hide console window on Windows in release
 
-use std::path::Path;
+use std::path::{Path, PathBuf};
 
+use clap::Parser;
 use eframe::egui::{self, load::SizedTexture, Color32, ColorImage, CornerRadius};
 use gameboy_emulator::{
     boot::{BootRom, BootRomReader},
@@ -15,9 +16,29 @@ const DISPLAY_HEIGHT: f32 = 47.0; // mm
 const DISPLAY_WIDTH: f32 = 43.0; // mm
 const SCALE_FACTOR: f32 = 6.0;
 
+#[derive(Debug, Parser)]
+#[command(version, about)]
+struct Args {
+    #[arg(value_name = "ROM_PATH", help = "The path to the ROM which will be loaded as a cartridge")]
+    cartridge_rom_path: PathBuf,
+    #[arg(short = 'b', long = "boot-rom", help = "The path to a boot ROM to use to start the GameBoy. Optional.")]
+    boot_rom_path: Option<PathBuf>,
+}
+
+const DEFAULT_BOOT_ROM: BootRom = BootRom::new(*include_bytes!("binaries/dmg_boot.bin"));
+
 fn main() -> eframe::Result {
-    let boot_rom = read_boot_rom("dmg_boot.bin");
-    let cartridge = read_cartridge("tests/roms/dmg-acid2.gb");
+    let args = Args::parse();
+
+    let boot_rom = if let Some(path) = args.boot_rom_path {
+        read_boot_rom(&path)
+    } else {
+        DEFAULT_BOOT_ROM
+    };
+
+    let cartridge = read_cartridge(&args.cartridge_rom_path);
+
+    println!("{:#?}", cartridge.header());
 
     let emulator = Emulator::new(boot_rom, cartridge);
 
