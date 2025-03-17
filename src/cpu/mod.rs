@@ -43,8 +43,6 @@ impl<B: Bus> Cpu<B> {
             .instruction_pointer()
             .wrapping_add(current_instruction.length());
 
-        // println!("{:#?}", current_instruction);
-
         match current_instruction {
             Instruction::Nop => {}
             Instruction::LdReg16(r16, imm16) => {
@@ -331,8 +329,6 @@ impl<B: Bus> Cpu<B> {
         }
 
         self.state.set_instruction_pointer(next_instruction_address);
-
-        // println!("{}", self.state);
 
         Ok(())
     }

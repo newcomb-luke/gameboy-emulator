@@ -1,6 +1,6 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")] // Hide console window on Windows in release
 
-use std::path::{Path, PathBuf};
+use std::{path::{Path, PathBuf}, time::Instant};
 
 use clap::Parser;
 use eframe::egui::{self, load::SizedTexture, Color32, ColorImage, CornerRadius};
@@ -16,16 +16,23 @@ const DISPLAY_HEIGHT: f32 = 47.0; // mm
 const DISPLAY_WIDTH: f32 = 43.0; // mm
 const SCALE_FACTOR: f32 = 6.0;
 
+const DEFAULT_BOOT_ROM: BootRom = BootRom::new(*include_bytes!("binaries/dmg_boot.bin"));
+
 #[derive(Debug, Parser)]
 #[command(version, about)]
 struct Args {
-    #[arg(value_name = "ROM_PATH", help = "The path to the ROM which will be loaded as a cartridge")]
+    #[arg(
+        value_name = "ROM_PATH",
+        help = "The path to the ROM which will be loaded as a cartridge"
+    )]
     cartridge_rom_path: PathBuf,
-    #[arg(short = 'b', long = "boot-rom", help = "The path to a boot ROM to use to start the GameBoy. Optional.")]
+    #[arg(
+        short = 'b',
+        long = "boot-rom",
+        help = "The path to a boot ROM to use to start the GameBoy. Optional."
+    )]
     boot_rom_path: Option<PathBuf>,
 }
-
-const DEFAULT_BOOT_ROM: BootRom = BootRom::new(*include_bytes!("binaries/dmg_boot.bin"));
 
 fn main() -> eframe::Result {
     let args = Args::parse();
@@ -37,8 +44,6 @@ fn main() -> eframe::Result {
     };
 
     let cartridge = read_cartridge(&args.cartridge_rom_path);
-
-    println!("{:#?}", cartridge.header());
 
     let emulator = Emulator::new(boot_rom, cartridge);
 
@@ -61,6 +66,7 @@ fn main() -> eframe::Result {
 struct EmuApp {
     emulator: Emulator,
     display_texture: egui::TextureHandle,
+    last_frame_time: Instant,
 }
 
 impl EmuApp {
@@ -74,12 +80,17 @@ impl EmuApp {
                 display_image,
                 egui::TextureOptions::NEAREST,
             ),
+            last_frame_time: Instant::now()
         }
     }
 }
 
 impl eframe::App for EmuApp {
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
+        let now = Instant::now();
+        let delta = now - self.last_frame_time;
+        let fps = 1.0 / delta.as_secs_f32();
+
         let my_frame = egui::containers::Frame {
             outer_margin: egui::Margin {
                 left: 10,
@@ -132,6 +143,8 @@ impl eframe::App for EmuApp {
                         ui.label("Breakpoint reached.");
                     }
 
+                    ui.label(format!("FPS: {:.2}", fps));
+
                     let state = self.emulator.execution_state();
                     ui.label(format!("{}", state));
 
@@ -141,6 +154,8 @@ impl eframe::App for EmuApp {
             });
 
         ctx.request_repaint();
+
+        self.last_frame_time = now;
     }
 }
 

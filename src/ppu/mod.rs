@@ -1,6 +1,6 @@
 use eframe::egui;
 use oam::ObjectAttributeMemory;
-use vram::Vram;
+use vram::{ColorId, Vram};
 
 use crate::{
     io::SharedIO, DARKER_COLOR, DARKEST_COLOR, DISPLAY_HEIGHT_PIXELS, DISPLAY_WIDTH_PIXELS,
@@ -52,8 +52,7 @@ impl Ppu {
                 tile_location = tile_location % 1024;
 
                 let tile_id = map0[tile_location];
-                let tile = self.vram.get_tile(tile_id);
-                let color_ids = tile.as_color_ids();
+                let color_ids = self.vram.get_tile_colors(tile_id);
 
                 let tile_y = view_y % 8;
                 let tile_x = view_x % 8;
@@ -67,12 +66,12 @@ impl Ppu {
         self.pixel_buffer.clone()
     }
 
-    fn color_id_to_color(&self, color_id: u8) -> egui::Color32 {
+    fn color_id_to_color(&self, color_id: ColorId) -> egui::Color32 {
         match color_id {
-            0 => LIGHTEST_COLOR,
-            1 => LIGHTER_COLOR,
-            2 => DARKER_COLOR,
-            _ => DARKEST_COLOR,
+            ColorId::Zero => LIGHTEST_COLOR,
+            ColorId::One => LIGHTER_COLOR,
+            ColorId::Two => DARKER_COLOR,
+            ColorId::Three => DARKEST_COLOR,
         }
     }
 

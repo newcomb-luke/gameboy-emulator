@@ -1,40 +1,65 @@
 use std::{cell::RefCell, rc::Rc};
 
+
+#[derive(Debug, Clone, Copy)]
+pub enum ColorId {
+    Zero,
+    One,
+    Two,
+    Three
+}
+
 #[derive(Debug, Clone, Copy)]
 pub struct Tile {
     data: [u8; 16],
+    colors: [[ColorId; 8]; 8]
 }
 
 impl Tile {
     pub fn zeroed() -> Self {
-        Self { data: [0u8; 16] }
+        Self {
+            data: [0u8; 16],
+            colors: [[ColorId::Zero; 8]; 8],
+        }
     }
 
     pub fn data(&self) -> &[u8; 16] {
         &self.data
     }
 
-    pub fn as_color_ids(&self) -> [[u8; 8]; 8] {
-        let mut color_ids = [[0u8; 8]; 8];
-
-        for row_idx in 0..8 {
-            let byte_offset = row_idx * 2;
-            let row = (self.data[byte_offset], self.data[byte_offset + 1]);
-
-            for col_idx in 0..8 {
-                let col_color_id =
-                    ((row.0 >> (7 - col_idx)) & 1) | (((row.1 >> (7 - col_idx)) & 1) << 1);
-                color_ids[row_idx][col_idx] = col_color_id;
-            }
-        }
-
-        color_ids
+    pub fn color_data(&self) -> &[[ColorId; 8]; 8] {
+        &self.colors
     }
-}
 
-impl From<[u8; 16]> for Tile {
-    fn from(value: [u8; 16]) -> Self {
-        Self { data: value }
+    pub fn read(&self, index: usize) -> u8 {
+        self.data[index]
+    }
+
+    pub fn write(&mut self, index: usize, data: u8) {
+        self.data[index] = data;
+
+        let row_start = index & 0xFFFE;
+
+        let lo_bits = self.data[row_start];
+        let hi_bits = self.data[row_start + 1];
+
+        let row_idx = index / 2;
+
+        for col_idx in 0..8 {
+            let mask = 1 << (7 - col_idx);
+
+            let left_bit = (hi_bits & mask) != 0;
+            let right_bit = (lo_bits & mask) != 0;
+
+            let color_id = match (left_bit, right_bit) {
+                (false, false) => ColorId::Zero,
+                (false, true) => ColorId::One,
+                (true, false) => ColorId::Two,
+                (true, true) => ColorId::Three,
+            };
+
+            self.colors[row_idx][col_idx] = color_id;
+        }
     }
 }
 
@@ -103,6 +128,10 @@ impl Vram {
         inner.tiles[id.0 as usize]
     }
 
+    pub fn get_tile_colors(&self, id: TileId) -> [[ColorId; 8]; 8] {
+        *self.inner.borrow().tiles[id.0 as usize].color_data()
+    }
+
     pub fn get_map_0(&self) -> [TileId; 1024] {
         let inner = self.inner.borrow();
         inner.map0
@@ -121,7 +150,7 @@ impl Vram {
                 let tile_index = vram_addr / 16;
                 let pixel_index = vram_addr % 16;
 
-                self.inner.borrow().tiles[tile_index as usize].data[pixel_index as usize]
+                self.inner.borrow().tiles[tile_index as usize].read(pixel_index as usize)
             }
             0x1800..=0x1BFF => {
                 self.inner.borrow().map0[(vram_addr - Self::TILE_MAP_OFFSET) as usize].0
@@ -145,8 +174,7 @@ impl Vram {
                 let tile_index = vram_addr / 16;
                 let pixel_index = vram_addr % 16;
 
-                self.inner.borrow_mut().tiles[tile_index as usize].data[pixel_index as usize] =
-                    data;
+                self.inner.borrow_mut().tiles[tile_index as usize].write(pixel_index as usize, data);
             }
             0x1800..=0x1BFF => {
                 self.inner.borrow_mut().map0[(vram_addr - Self::TILE_MAP_OFFSET) as usize].0 = data;
