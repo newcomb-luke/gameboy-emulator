@@ -4,27 +4,43 @@ use error::Error;
 
 mod error;
 
+const BANK_SIZE: usize = 16 * 1024;
+
 #[derive(Debug, Clone)]
 pub struct Cartridge {
-    bank0: [u8; 16 * 1024],
-    bank1: [u8; 16 * 1024],
+    bank0: [u8; BANK_SIZE],
+    extra_banks: Vec<[u8; BANK_SIZE]>,
     header: CartridgeHeader,
+    bank_selected: usize
 }
 
 impl Cartridge {
     pub fn read(reader: &mut impl Read) -> Result<Self, Error> {
-        let mut bank0 = [0u8; 16 * 1024];
+        let mut bank0 = [0u8; BANK_SIZE];
         reader.read_exact(&mut bank0).map_err(|e| Error::from(e))?;
 
-        let header = CartridgeHeaderReader::read(&bank0)?;
+        let mut remaining_rom_bytes = Vec::new();
+        reader.read_to_end(&mut remaining_rom_bytes).map_err(|e| Error::from(e))?;
 
-        let mut bank1 = [0u8; 16 * 1024];
-        reader.read_exact(&mut bank1).map_err(|e| Error::from(e))?;
+        let header = CartridgeHeaderReader::read(&bank0, &remaining_rom_bytes)?;
+
+        if (remaining_rom_bytes.len() % BANK_SIZE) != 0 {
+            panic!("ROM doesn't have a size in a multiple of banks, possibly a not yet supported format: {}", (remaining_rom_bytes.len() + BANK_SIZE));
+        }
+
+        let mut extra_banks = Vec::new();
+
+        for chunk in remaining_rom_bytes.chunks_exact(BANK_SIZE) {
+            let mut bank = [0u8; BANK_SIZE];
+            bank.copy_from_slice(chunk);
+            extra_banks.push(bank);
+        }
 
         Ok(Self {
             bank0,
             header,
-            bank1,
+            extra_banks,
+            bank_selected: 0
         })
     }
 
@@ -32,12 +48,12 @@ impl Cartridge {
         &self.header
     }
 
-    pub fn bank0(&self) -> &[u8; 16 * 1024] {
+    pub fn bank0(&self) -> &[u8; BANK_SIZE] {
         &self.bank0
     }
 
-    pub fn bank1(&self) -> &[u8; 16 * 1024] {
-        &self.bank1
+    pub fn bank1(&self) -> &[u8; BANK_SIZE] {
+        &self.extra_banks[self.bank_selected]
     }
 }
 
@@ -174,7 +190,7 @@ impl CartridgeHeader {
 struct CartridgeHeaderReader {}
 
 impl CartridgeHeaderReader {
-    fn read(bank0: &[u8]) -> Result<CartridgeHeader, Error> {
+    fn read(bank0: &[u8], extra_banks: &[u8]) -> Result<CartridgeHeader, Error> {
         let title = Self::read_title(bank0)?;
         let manufacturer_code = Self::read_manufacturer_code(bank0)?;
         let cgb_flag = Self::read_cgb_flag(bank0);
@@ -189,7 +205,7 @@ impl CartridgeHeaderReader {
         let read_header_checksum = Self::read_header_checksum(bank0);
         let computed_header_checksum = Self::calculate_header_checksum(bank0);
         let read_global_checksum = Self::read_global_checksum(bank0);
-        let computed_global_checksum = Self::calculate_global_checksum(bank0);
+        let computed_global_checksum = Self::calculate_global_checksum(bank0, extra_banks);
 
         Ok(CartridgeHeader {
             title: title.to_string(),
@@ -308,9 +324,25 @@ impl CartridgeHeaderReader {
         u16::from_be_bytes(bytes)
     }
 
-    fn calculate_global_checksum(_bank0: &[u8]) -> u16 {
-        // TODO: Perform calculation
-        0
+    fn calculate_global_checksum(bank0: &[u8], extra_banks: &[u8]) -> u16 {
+        let mut checksum: u16 = 0;
+
+        for b in &bank0[0x0000..0x014E] {
+            checksum = checksum.wrapping_add((*b) as u16);
+        }
+
+        // Exclude the header checksum itself
+
+        for b in &bank0[0x0150..BANK_SIZE] {
+            checksum = checksum.wrapping_add((*b) as u16);
+        }
+
+        // Add the rest of the ROM too
+        for b in extra_banks {
+            checksum = checksum.wrapping_add((*b) as u16);
+        }
+
+        checksum
     }
 }
 

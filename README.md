@@ -166,4 +166,4 @@ Currently drawing the screen is slow, and will need to be improved.
     - [x] Header Checksum
     - [x] Global Checksum
     - [x] Header Checksum Calculation
-    - [ ] Global Checksum Calculation (Optional)
+    - [x] Global Checksum Calculation (Optional)
