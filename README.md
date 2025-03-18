@@ -12,7 +12,7 @@ Currently drawing the screen is slow, and will need to be improved.
 
 - [ ] MVP
     - [x] Cartridge header reading
-    - [ ] Cartridge reading
+    - [x] Cartridge reading
     - [x] Instruction decoding
     - [x] Instruction execution
     - [x] Execute Boot ROM

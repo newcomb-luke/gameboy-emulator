@@ -3,7 +3,7 @@ use oam::ObjectAttributeMemory;
 use vram::{ColorId, Vram};
 
 use crate::{
-    io::lcd::Lcd, DARKER_COLOR, DARKEST_COLOR, DISPLAY_HEIGHT_PIXELS, DISPLAY_WIDTH_PIXELS, LIGHTER_COLOR, LIGHTEST_COLOR
+    io::lcd::Lcd, DARKER_COLOR, DARKEST_COLOR, DISPLAY_HEIGHT_PIXELS, DISPLAY_WIDTH_PIXELS, LIGHTER_COLOR, LIGHTEST_COLOR, TOTAL_PIXELS
 };
 
 pub mod oam;
@@ -13,7 +13,7 @@ pub mod vram;
 pub struct Ppu {
     vram: Vram,
     oam: ObjectAttributeMemory,
-    pixel_buffer: Vec<egui::Color32>,
+    pixel_buffer: Box<[egui::Color32; TOTAL_PIXELS]>,
 }
 
 impl Ppu {
@@ -41,7 +41,7 @@ impl Ppu {
         &mut self.oam
     }
 
-    pub fn render(&mut self, lcd: &Lcd) -> Vec<egui::Color32> {
+    pub fn render(&mut self, lcd: &Lcd) -> &[egui::Color32; TOTAL_PIXELS] {
         let scroll_y = lcd.read_scroll_y();
         let scroll_x = lcd.read_scroll_x();
 
@@ -73,7 +73,7 @@ impl Ppu {
             }
         }
 
-        self.pixel_buffer.clone()
+        &self.pixel_buffer
     }
 
     fn color_id_to_color(&self, color_id: ColorId) -> egui::Color32 {
@@ -85,15 +85,7 @@ impl Ppu {
         }
     }
 
-    fn empty_pixel_buffer() -> Vec<egui::Color32> {
-        let mut pixels = Vec::new();
-
-        for _ in 0..DISPLAY_HEIGHT_PIXELS {
-            for _ in 0..DISPLAY_WIDTH_PIXELS {
-                pixels.push(LIGHTEST_COLOR);
-            }
-        }
-
-        pixels
+    fn empty_pixel_buffer() -> Box<[egui::Color32; TOTAL_PIXELS]> {
+        Box::new([LIGHTER_COLOR; TOTAL_PIXELS])
     }
 }

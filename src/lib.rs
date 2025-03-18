@@ -21,6 +21,7 @@ pub mod bus;
 pub const DISPLAY_HEIGHT_PIXELS: usize = 144;
 pub const DISPLAY_WIDTH_PIXELS: usize = 160;
 pub const DISPLAY_SIZE_PIXELS: &'static [usize; 2] = &[DISPLAY_WIDTH_PIXELS, DISPLAY_HEIGHT_PIXELS];
+pub const TOTAL_PIXELS: usize = DISPLAY_HEIGHT_PIXELS * DISPLAY_WIDTH_PIXELS;
 
 pub const DARKEST_COLOR: Color32 = Color32::from_rgb(8, 24, 32);
 pub const DARKER_COLOR: Color32 = Color32::from_rgb(52, 104, 86);
@@ -30,7 +31,7 @@ pub const OFF_COLOR: Color32 = Color32::from_rgb(133, 159, 88);
 
 pub struct Emulator {
     cpu: Cpu,
-    empty_display: Vec<Color32>,
+    empty_display: Box<[Color32; TOTAL_PIXELS]>,
     breakpoints: Vec<u16>,
 }
 
@@ -60,7 +61,7 @@ impl Emulator {
         self.cpu.execute_one()
     }
 
-    pub fn get_pixels(&mut self) -> Vec<Color32> {
+    pub fn get_pixels(&mut self) -> &[Color32] {
         let lcd = self.cpu.bus_mut().io_mut().lcd_mut();
 
         lcd.write_lcd_y(0x90);
@@ -77,7 +78,7 @@ impl Emulator {
         if screen_on {
             self.cpu.bus_mut().render()
         } else {
-            self.empty_display.clone()
+            self.empty_display.as_slice()
         }
     }
 
@@ -93,16 +94,8 @@ impl Emulator {
         None
     }
 
-    fn off_display() -> Vec<Color32> {
-        let mut pixels = Vec::new();
-
-        for _ in 0..DISPLAY_HEIGHT_PIXELS {
-            for _ in 0..DISPLAY_WIDTH_PIXELS {
-                pixels.push(OFF_COLOR);
-            }
-        }
-
-        pixels
+    fn off_display() -> Box<[Color32; TOTAL_PIXELS]> {
+        Box::new([OFF_COLOR; TOTAL_PIXELS])
     }
 }
 

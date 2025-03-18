@@ -41,7 +41,9 @@ fn main() -> eframe::Result {
 
     let cartridge = read_cartridge(&args.cartridge_rom_path);
 
-    let emulator = Emulator::new(boot_rom, cartridge);
+    let mut emulator = Emulator::new(boot_rom, cartridge);
+
+    emulator.add_breakpoint(0x0000);
 
     let options = eframe::NativeOptions {
         viewport: egui::ViewportBuilder::default()
@@ -103,7 +105,7 @@ impl eframe::App for EmuApp {
 
         let mut breakpoint_reached = false;
 
-        for i in 0..200 {
+        for i in 0..500 {
             if let Some(_) = self.emulator.breakpoint_reached() {
                 breakpoint_reached = true;
                 break;
@@ -116,7 +118,7 @@ impl eframe::App for EmuApp {
                     self.display_texture.set(
                         egui::ColorImage {
                             size: *DISPLAY_SIZE_PIXELS,
-                            pixels,
+                            pixels: pixels.to_vec(),
                         },
                         egui::TextureOptions::NEAREST,
                     );
@@ -134,6 +136,7 @@ impl eframe::App for EmuApp {
                         DISPLAY_WIDTH * (SCALE_FACTOR + 2.0),
                     ],
                 ));
+
                 ui.vertical_centered(|ui| {
                     if breakpoint_reached {
                         ui.label("Breakpoint reached.");

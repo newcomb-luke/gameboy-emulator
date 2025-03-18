@@ -1,7 +1,7 @@
 use eframe::egui;
 
 use crate::{
-    boot::BootRom, cartridge::Cartridge, cpu::error::Error, io::IO, memory::ram::{HighRam, WorkRam}, ppu::Ppu
+    boot::BootRom, cartridge::Cartridge, cpu::error::Error, io::IO, memory::ram::{HighRam, WorkRam}, ppu::Ppu, TOTAL_PIXELS
 };
 
 #[derive(Clone)]
@@ -81,7 +81,7 @@ impl Bus {
         self.io.boot_rom_enable() == 0
     }
 
-    pub fn render(&mut self) -> Vec<egui::Color32> {
+    pub fn render(&mut self) -> &[egui::Color32; TOTAL_PIXELS] {
         self.ppu.render(&self.io.lcd_mut())
     }
 
