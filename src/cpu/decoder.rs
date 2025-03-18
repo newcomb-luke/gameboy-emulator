@@ -1,7 +1,8 @@
+use crate::bus::Bus;
+
 use super::{
-    bus::Bus,
     error::Error,
-    execution_state::SharedExecutionState,
+    execution_state::ExecutionState,
     instruction::{
         BitIndex, Condition, Imm16, Imm8, Instruction, Register16, Register16Memory,
         Register16Stack, Register8, Target,
@@ -18,8 +19,8 @@ impl Decoder {
 
     pub fn decode_one(
         &self,
-        state: &SharedExecutionState,
-        bus: &impl Bus,
+        state: &ExecutionState,
+        bus: &Bus,
     ) -> Result<Instruction, Error> {
         let ip = state.instruction_pointer();
         let opcode_byte = bus.read_u8(state.instruction_pointer())?;
@@ -323,12 +324,12 @@ impl Decoder {
         }
     }
 
-    fn read_imm8(&self, bus: &impl Bus, ip: u16) -> Result<Imm8, Error> {
+    fn read_imm8(&self, bus: &Bus, ip: u16) -> Result<Imm8, Error> {
         let value = bus.read_u8(ip + 1)?;
         Ok(Imm8::from(value))
     }
 
-    fn read_imm16(&self, bus: &impl Bus, ip: u16) -> Result<Imm16, Error> {
+    fn read_imm16(&self, bus: &Bus, ip: u16) -> Result<Imm16, Error> {
         let value = bus.read_u16(ip + 1)?;
         Ok(Imm16::from(value))
     }

@@ -1,8 +1,6 @@
 use std::{
-    cell::RefCell,
     fmt::Display,
     ops::{BitAnd, BitAndAssign, BitOr, BitOrAssign},
-    rc::Rc,
 };
 
 #[derive(Debug, Clone, Copy)]
@@ -39,85 +37,57 @@ impl ExecutionState {
         self.reg_a = (value >> 8) as u8;
         self.flags = Flags::from((value & 0xFF) as u8)
     }
-}
-
-#[derive(Debug, Clone)]
-pub struct SharedExecutionState {
-    inner: Rc<RefCell<ExecutionState>>,
-}
-
-impl SharedExecutionState {
-    pub fn new() -> Self {
-        Self {
-            inner: Rc::new(RefCell::new(ExecutionState::new())),
-        }
-    }
 
     pub fn instruction_pointer(&self) -> u16 {
-        self.inner.borrow().instruction_pointer
+        self.instruction_pointer
     }
 
-    pub fn set_instruction_pointer(&self, value: u16) {
-        self.inner.borrow_mut().instruction_pointer = value;
+    pub fn set_instruction_pointer(&mut self, value: u16) {
+        self.instruction_pointer = value;
     }
 
     pub fn stack_pointer(&self) -> u16 {
-        self.inner.borrow().stack_pointer
+        self.stack_pointer
     }
 
-    pub fn set_stack_pointer(&self, value: u16) {
-        self.inner.borrow_mut().stack_pointer = value;
+    pub fn set_stack_pointer(&mut self, value: u16) {
+        self.stack_pointer = value;
     }
 
-    pub fn set_flags(&self, flags: Flags) {
-        self.inner.borrow_mut().flags = flags
+    pub fn set_flags(&mut self, flags: Flags) {
+        self.flags = flags
     }
 
-    pub fn flags(&self) -> Flags {
-        self.inner.borrow().flags
+    pub fn flags(&self) -> &Flags {
+        &self.flags
+    }
+
+    pub fn flags_mut(&mut self) -> &mut Flags {
+        &mut self.flags
     }
 
     pub fn interrupts_enabled(&self) -> bool {
-        self.inner.borrow().interrupts_enabled
+        self.interrupts_enabled
     }
 
-    pub fn set_interrupts_enabled(&self, enabled: bool) {
-        self.inner.borrow_mut().interrupts_enabled = enabled;
-    }
-
-    pub fn modify_flags<F>(&self, f: F)
-    where
-        F: FnOnce(&mut Flags),
-    {
-        let mut flags = self.flags();
-
-        f(&mut flags);
-
-        self.set_flags(flags);
-    }
-
-    pub fn reg_af(&self) -> u16 {
-        self.inner.borrow().reg_af()
-    }
-
-    pub fn set_reg_af(&mut self, value: u16) {
-        self.inner.borrow_mut().set_reg_af(value)
+    pub fn set_interrupts_enabled(&mut self, enabled: bool) {
+        self.interrupts_enabled = enabled;
     }
 
     pub fn reg_a(&self) -> u8 {
-        self.inner.borrow().reg_a
+        self.reg_a
     }
 
     pub fn set_reg_a(&mut self, value: u8) {
-        self.inner.borrow_mut().reg_a = value;
+        self.reg_a = value;
     }
 
     pub fn reg_bc(&self) -> u16 {
-        self.inner.borrow().reg_bc
+        self.reg_bc
     }
 
     pub fn set_reg_bc(&mut self, value: u16) {
-        self.inner.borrow_mut().reg_bc = value;
+        self.reg_bc = value;
     }
 
     pub fn reg_b(&self) -> u8 {
@@ -137,11 +107,11 @@ impl SharedExecutionState {
     }
 
     pub fn reg_de(&self) -> u16 {
-        self.inner.borrow().reg_de
+        self.reg_de
     }
 
     pub fn set_reg_de(&mut self, value: u16) {
-        self.inner.borrow_mut().reg_de = value;
+        self.reg_de = value;
     }
 
     pub fn reg_d(&self) -> u8 {
@@ -161,11 +131,11 @@ impl SharedExecutionState {
     }
 
     pub fn reg_hl(&self) -> u16 {
-        self.inner.borrow().reg_hl
+        self.reg_hl
     }
 
     pub fn set_reg_hl(&mut self, value: u16) {
-        self.inner.borrow_mut().reg_hl = value;
+        self.reg_hl = value;
     }
 
     pub fn reg_h(&self) -> u8 {
@@ -337,12 +307,6 @@ impl Display for ExecutionState {
             self.reg_af(),
             self.flags
         )
-    }
-}
-
-impl Display for SharedExecutionState {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", self.inner.borrow())
     }
 }
 

@@ -4,6 +4,8 @@ use error::Error;
 
 pub mod error;
 
+pub const DEFAULT_BOOT_ROM: BootRom = BootRom::new(*include_bytes!("dmg_boot.bin"));
+
 #[derive(Debug, Clone, Copy)]
 pub struct BootRom {
     contents: [u8; 256],

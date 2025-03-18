@@ -1,7 +1,7 @@
 use std::io::Read;
 
 use error::Error;
-use header::{CartridgeHeader, CartridgeHeaderReader};
+use header::{CartridgeHeader, CartridgeHeaderReader, ManufacturerCode};
 
 mod error;
 pub mod header;
@@ -18,6 +18,19 @@ pub struct Cartridge {
 }
 
 impl Cartridge {
+    pub fn empty() -> Self {
+        let bank0 = [0u8; BANK_SIZE];
+        let bank1 = [0u8; BANK_SIZE];
+        let header = CartridgeHeader::new("EMPTY", ManufacturerCode::zeroed(), header::CgbFlag::No, header::NewLicenseeCode::Unknown('\0', '\0'), header::SgbFlag::No, header::CartridgeType::RomOnly, header::RomSize::Size32KiB, header::RamSize::NoRam, header::DestinationCode::Japan, header::OldLicenseeCode::UseNewLicenseeCode, 0, 0, 0);
+
+        Self {
+            bank0,
+            extra_banks: vec![bank1],
+            header,
+            bank_selected: 0
+        }
+    }
+
     pub fn read(reader: &mut impl Read) -> Result<Self, Error> {
         let mut bank0 = [0u8; BANK_SIZE];
         reader.read_exact(&mut bank0).map_err(|e| Error::from(e))?;

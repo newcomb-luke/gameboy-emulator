@@ -377,6 +377,10 @@ impl ManufacturerCode {
         }
     }
 
+    pub fn zeroed() -> Self {
+        Self::new(['\0', '\0', '\0', '\0'])
+    }
+
     pub fn code(&self) -> &String {
         &self.code
     }

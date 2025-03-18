@@ -1,13 +1,11 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")] // Hide console window on Windows in release
 
-use std::{path::{Path, PathBuf}, time::Instant};
+use std::{path::PathBuf, time::Instant};
 
 use clap::Parser;
 use eframe::egui::{self, load::SizedTexture, Color32, ColorImage, CornerRadius};
 use gameboy_emulator::{
-    boot::{BootRom, BootRomReader},
-    cartridge::Cartridge,
-    Emulator, DISPLAY_SIZE_PIXELS,
+    boot::DEFAULT_BOOT_ROM, read_boot_rom, read_cartridge, Emulator, DISPLAY_SIZE_PIXELS
 };
 
 const GAMEBOY_HEIGHT: f32 = 148.0; // mm
@@ -15,8 +13,6 @@ const GAMEBOY_WIDTH: f32 = 90.0; // mm
 const DISPLAY_HEIGHT: f32 = 47.0; // mm
 const DISPLAY_WIDTH: f32 = 43.0; // mm
 const SCALE_FACTOR: f32 = 6.0;
-
-const DEFAULT_BOOT_ROM: BootRom = BootRom::new(*include_bytes!("binaries/dmg_boot.bin"));
 
 #[derive(Debug, Parser)]
 #[command(version, about)]
@@ -157,20 +153,4 @@ impl eframe::App for EmuApp {
 
         self.last_frame_time = now;
     }
-}
-
-fn read_cartridge<P>(path: P) -> Cartridge
-where
-    P: AsRef<Path>,
-{
-    let mut cartridge_file = std::fs::File::open(path).unwrap();
-    Cartridge::read(&mut cartridge_file).unwrap()
-}
-
-fn read_boot_rom<P>(path: P) -> BootRom
-where
-    P: AsRef<Path>,
-{
-    let mut boot_rom_file = std::fs::File::open(path).unwrap();
-    BootRomReader::read(&mut boot_rom_file).unwrap()
 }

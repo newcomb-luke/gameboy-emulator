@@ -1,14 +1,6 @@
-use super::execution_state::{Flags, SharedExecutionState};
+use super::{execution_state::Flags, Cpu};
 
-pub struct Alu {
-    state: SharedExecutionState,
-}
-
-impl Alu {
-    pub fn new(state: SharedExecutionState) -> Self {
-        Self { state }
-    }
-
+impl Cpu {
     pub fn inc_u16(&self, val: u16) -> u16 {
         val.wrapping_add(1)
     }
@@ -17,39 +9,35 @@ impl Alu {
         val.wrapping_sub(1)
     }
 
-    pub fn inc_u8(&self, val: u8) -> u8 {
-        let flags_before = self.state.flags();
+    pub fn inc_u8(&mut self, val: u8) -> u8 {
+        let flags_before = *self.state.flags();
 
         let result = self.add_u8(val, 1);
 
-        self.state.modify_flags(|f| {
-            f.carry = flags_before.carry;
-        });
+        self.state.flags_mut().carry = flags_before.carry;
 
         result
     }
 
-    pub fn dec_u8(&self, val: u8) -> u8 {
-        let flags_before = self.state.flags();
+    pub fn dec_u8(&mut self, val: u8) -> u8 {
+        let flags_before = *self.state.flags();
 
         let result = self.sub_u8(1, val);
 
-        self.state.modify_flags(|f| {
-            f.carry = flags_before.carry;
-        });
+        self.state.flags_mut().carry = flags_before.carry;
 
         result
     }
 
-    pub fn add_u16(&self, v1: u16, v2: u16) -> u16 {
+    pub fn add_u16(&mut self, v1: u16, v2: u16) -> u16 {
         self.generic_add_u16(v1, v2, false)
     }
 
-    pub fn adc_u16(&self, v1: u16, v2: u16) -> u16 {
+    pub fn adc_u16(&mut self, v1: u16, v2: u16) -> u16 {
         self.generic_add_u16(v1, v2, true)
     }
 
-    fn generic_add_u16(&self, v1: u16, v2: u16, with_carry: bool) -> u16 {
+    fn generic_add_u16(&mut self, v1: u16, v2: u16, with_carry: bool) -> u16 {
         let carry = if with_carry & self.state.flags().carry {
             1
         } else {
@@ -67,15 +55,15 @@ impl Alu {
         result
     }
 
-    pub fn add_u8(&self, v1: u8, v2: u8) -> u8 {
+    pub fn add_u8(&mut self, v1: u8, v2: u8) -> u8 {
         self.generic_add_u8(v1, v2, false)
     }
 
-    pub fn adc_u8(&self, v1: u8, v2: u8) -> u8 {
+    pub fn adc_u8(&mut self, v1: u8, v2: u8) -> u8 {
         self.generic_add_u8(v1, v2, true)
     }
 
-    fn generic_add_u8(&self, v1: u8, v2: u8, with_carry: bool) -> u8 {
+    fn generic_add_u8(&mut self, v1: u8, v2: u8, with_carry: bool) -> u8 {
         let carry = if with_carry & self.state.flags().carry {
             1
         } else {
@@ -94,17 +82,17 @@ impl Alu {
     }
 
     /// v2 - v1
-    pub fn sub_u16(&self, v1: u16, v2: u16) -> u16 {
+    pub fn sub_u16(&mut self, v1: u16, v2: u16) -> u16 {
         self.generic_sub_u16(v1, v2, false)
     }
 
     /// v2 - v1
-    pub fn sbc_u16(&self, v1: u16, v2: u16) -> u16 {
+    pub fn sbc_u16(&mut self, v1: u16, v2: u16) -> u16 {
         self.generic_sub_u16(v1, v2, true)
     }
 
     /// v2 - v1
-    fn generic_sub_u16(&self, v1: u16, v2: u16, with_carry: bool) -> u16 {
+    fn generic_sub_u16(&mut self, v1: u16, v2: u16, with_carry: bool) -> u16 {
         let carry = if with_carry & self.state.flags().carry {
             1
         } else {
@@ -126,17 +114,17 @@ impl Alu {
     }
 
     /// v2 - v1
-    pub fn sub_u8(&self, v1: u8, v2: u8) -> u8 {
+    pub fn sub_u8(&mut self, v1: u8, v2: u8) -> u8 {
         self.generic_sub_u8(v1, v2, false)
     }
 
     /// v2 - v1
-    pub fn sbc_u8(&self, v1: u8, v2: u8) -> u8 {
+    pub fn sbc_u8(&mut self, v1: u8, v2: u8) -> u8 {
         self.generic_sub_u8(v1, v2, true)
     }
 
     /// v2 - v1
-    fn generic_sub_u8(&self, v1: u8, v2: u8, with_carry: bool) -> u8 {
+    fn generic_sub_u8(&mut self, v1: u8, v2: u8, with_carry: bool) -> u8 {
         let carry = if with_carry & self.state.flags().carry {
             1
         } else {
@@ -157,7 +145,7 @@ impl Alu {
         result
     }
 
-    pub fn and_u8(&self, v1: u8, v2: u8) -> u8 {
+    pub fn and_u8(&mut self, v1: u8, v2: u8) -> u8 {
         let result = v1 & v2;
 
         let flags = Flags::new(false, true, false, result == 0);
@@ -166,7 +154,7 @@ impl Alu {
         result
     }
 
-    pub fn xor_u8(&self, v1: u8, v2: u8) -> u8 {
+    pub fn xor_u8(&mut self, v1: u8, v2: u8) -> u8 {
         let result = v1 ^ v2;
 
         let flags = Flags::zeros().with_zero(result == 0);
@@ -175,7 +163,7 @@ impl Alu {
         result
     }
 
-    pub fn or_u8(&self, v1: u8, v2: u8) -> u8 {
+    pub fn or_u8(&mut self, v1: u8, v2: u8) -> u8 {
         let result = v1 | v2;
 
         let flags = Flags::zeros().with_zero(result == 0);
@@ -184,14 +172,14 @@ impl Alu {
         result
     }
 
-    pub fn cp_u8(&self, v1: u8, v2: u8) {
+    pub fn cp_u8(&mut self, v1: u8, v2: u8) {
         self.sub_u8(v1, v2);
     }
 
-    pub fn decimal_adjust(&self, a: u8) -> u8 {
+    pub fn decimal_adjust(&mut self, a: u8) -> u8 {
         let mut adjustment = 0;
 
-        let flags = self.state.flags();
+        let flags = *self.state.flags();
 
         if flags.subtraction {
             if flags.half_carry {
@@ -203,10 +191,9 @@ impl Alu {
 
             let result = self.sub_u8(adjustment, a);
 
-            self.state.modify_flags(|new_flags| {
-                new_flags.subtraction = flags.subtraction;
-                new_flags.half_carry = false;
-            });
+            let new_flags = self.state.flags_mut();
+            new_flags.subtraction = flags.subtraction;
+            new_flags.half_carry = false;
 
             result
         } else {
@@ -221,19 +208,18 @@ impl Alu {
 
             let result = self.add_u8(a, adjustment);
 
-            self.state.modify_flags(|new_flags| {
-                new_flags.subtraction = flags.subtraction;
-                new_flags.half_carry = false;
-                if set_carry {
-                    new_flags.carry = true;
-                }
-            });
+            let new_flags = self.state.flags_mut();
+            new_flags.subtraction = flags.subtraction;
+            new_flags.half_carry = false;
+            if set_carry {
+                new_flags.carry = true;
+            }
 
             result
         }
     }
 
-    pub fn rotate_left_u8(&self, v: u8, update_zero_flag: bool, through_carry: bool) -> u8 {
+    pub fn rotate_left_u8(&mut self, v: u8, update_zero_flag: bool, through_carry: bool) -> u8 {
         let carry = v >> 7;
         let result = if through_carry {
             (v << 1) | (if self.state.flags().carry { 1 } else { 0 })
@@ -247,7 +233,7 @@ impl Alu {
         result
     }
 
-    pub fn rotate_right_u8(&self, v: u8, update_zero_flag: bool, through_carry: bool) -> u8 {
+    pub fn rotate_right_u8(&mut self, v: u8, update_zero_flag: bool, through_carry: bool) -> u8 {
         let carry = v & 1;
         let result = if through_carry {
             (v >> 1) | ((if self.state.flags().carry { 1 } else { 0 }) << 7)
@@ -261,12 +247,13 @@ impl Alu {
         result
     }
 
-    pub fn not_u8(&self, v: u8) -> u8 {
+    pub fn not_u8(&mut self, v: u8) -> u8 {
         let result = !v;
-        self.state.modify_flags(|flags| {
-            flags.subtraction = true;
-            flags.half_carry = true;
-        });
+
+        let flags = self.state.flags_mut();
+        flags.subtraction = true;
+        flags.half_carry = true;
+
         result
     }
 
@@ -277,7 +264,7 @@ impl Alu {
         hi | lo
     }
 
-    pub fn shift_left_arithmetic(&self, v: u8) -> u8 {
+    pub fn shift_left_arithmetic(&mut self, v: u8) -> u8 {
         let carry = (v >> 7) != 0;
         let result = v << 1;
 
@@ -287,7 +274,7 @@ impl Alu {
         result
     }
 
-    pub fn shift_right_arithmetic(&self, v: u8) -> u8 {
+    pub fn shift_right_arithmetic(&mut self, v: u8) -> u8 {
         let carry = (v & 1) != 0;
         let result = (v >> 1) | (v & 0b1000_0000);
 
@@ -297,7 +284,7 @@ impl Alu {
         result
     }
 
-    pub fn shift_right_logical(&self, v: u8) -> u8 {
+    pub fn shift_right_logical(&mut self, v: u8) -> u8 {
         let carry = (v & 1) != 0;
         let result = v >> 1;
 
@@ -307,14 +294,13 @@ impl Alu {
         result
     }
 
-    pub fn test_bit_u8(&self, idx: u8, v: u8) {
+    pub fn test_bit_u8(&mut self, idx: u8, v: u8) {
         let zero = ((v >> idx) & 1) == 0;
 
-        self.state.modify_flags(|f| {
-            f.half_carry = true;
-            f.subtraction = false;
-            f.zero = zero;
-        });
+        let flags = self.state.flags_mut();
+        flags.half_carry = true;
+        flags.subtraction = false;
+        flags.zero = zero;
     }
 
     pub fn reset_bit_u8(&self, idx: u8, v: u8) -> u8 {
@@ -330,20 +316,21 @@ impl Alu {
 
 #[cfg(test)]
 mod tests {
-    use crate::cpu::execution_state::{Flags, SharedExecutionState};
-
-    use super::Alu;
+    use crate::{boot::DEFAULT_BOOT_ROM, bus::Bus, cartridge::Cartridge, cpu::{execution_state::Flags, Cpu}};
 
     fn test_alu_operation<F>(f: F)
     where
-        F: FnOnce(&mut Alu) -> Flags,
+        F: FnOnce(&mut Cpu) -> Flags,
     {
-        let state = SharedExecutionState::new();
-        let mut alu = Alu::new(state.clone());
+        let boot_rom = DEFAULT_BOOT_ROM;
+        let cartridge = Cartridge::empty();
+        let mut alu = Cpu::new(Bus::new(boot_rom, cartridge));
 
         let desired_flags = f(&mut alu);
 
-        assert_eq!(state.flags(), desired_flags);
+        let state = alu.state;
+
+        assert_eq!(*state.flags(), desired_flags);
     }
 
     #[test]
@@ -459,9 +446,7 @@ mod tests {
     #[test]
     fn adc_u8_carry_set() {
         test_alu_operation(|alu| {
-            alu.state.modify_flags(|flags| {
-                flags.carry = true;
-            });
+            alu.state.flags_mut().carry = true;
             let result = alu.adc_u8(5, 4);
             assert_eq!(result, 10);
 
@@ -522,9 +507,7 @@ mod tests {
     #[test]
     fn adc_u16_carry() {
         test_alu_operation(|alu| {
-            alu.state.modify_flags(|flags| {
-                flags.carry = true;
-            });
+            alu.state.flags_mut().carry = true;
             let result = alu.adc_u16(50, 40);
             assert_eq!(result, 91);
 

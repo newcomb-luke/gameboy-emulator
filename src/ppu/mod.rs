@@ -3,38 +3,47 @@ use oam::ObjectAttributeMemory;
 use vram::{ColorId, Vram};
 
 use crate::{
-    io::SharedIO, DARKER_COLOR, DARKEST_COLOR, DISPLAY_HEIGHT_PIXELS, DISPLAY_WIDTH_PIXELS,
-    LIGHTER_COLOR, LIGHTEST_COLOR,
+    io::lcd::Lcd, DARKER_COLOR, DARKEST_COLOR, DISPLAY_HEIGHT_PIXELS, DISPLAY_WIDTH_PIXELS, LIGHTER_COLOR, LIGHTEST_COLOR
 };
 
 pub mod oam;
 pub mod vram;
 
+#[derive(Clone)]
 pub struct Ppu {
     vram: Vram,
     oam: ObjectAttributeMemory,
-    shared_io: SharedIO,
     pixel_buffer: Vec<egui::Color32>,
 }
 
 impl Ppu {
-    pub fn new(vram: Vram, shared_io: SharedIO, oam: ObjectAttributeMemory) -> Self {
+    pub fn new() -> Self {
         Self {
-            vram,
-            oam,
-            shared_io,
+            vram: Vram::zeroed(),
+            oam: ObjectAttributeMemory::zeroed(),
             pixel_buffer: Self::empty_pixel_buffer(),
         }
     }
 
-    pub fn render(&mut self) -> Vec<egui::Color32> {
-        let mut scroll_y = 0;
-        let mut scroll_x = 0;
+    pub fn vram(&self) -> &Vram {
+        &self.vram
+    }
 
-        self.shared_io.with_lcd_mut(|lcd| {
-            scroll_y = lcd.read_scroll_y();
-            scroll_x = lcd.read_scroll_x();
-        });
+    pub fn vram_mut(&mut self) -> &mut Vram {
+        &mut self.vram
+    }
+
+    pub fn oam(&self) -> &ObjectAttributeMemory {
+        &self.oam
+    }
+
+    pub fn oam_mut(&mut self) -> &mut ObjectAttributeMemory {
+        &mut self.oam
+    }
+
+    pub fn render(&mut self, lcd: &Lcd) -> Vec<egui::Color32> {
+        let scroll_y = lcd.read_scroll_y();
+        let scroll_x = lcd.read_scroll_x();
 
         let bottom = scroll_y.wrapping_add(143);
         let top = bottom.wrapping_sub(144);
@@ -52,7 +61,8 @@ impl Ppu {
                 tile_location = tile_location % 1024;
 
                 let tile_id = map0[tile_location];
-                let color_ids = self.vram.get_tile_colors(tile_id);
+                let tile = self.vram.get_tile(tile_id);
+                let color_ids = tile.color_data();
 
                 let tile_y = view_y % 8;
                 let tile_x = view_x % 8;

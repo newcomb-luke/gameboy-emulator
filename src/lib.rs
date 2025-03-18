@@ -1,14 +1,14 @@
-use boot::BootRom;
+use std::path::Path;
+
+use boot::{BootRom, BootRomReader};
+use bus::Bus;
 use cartridge::Cartridge;
 use cpu::{
-    bus::{MainBus, SharedBus},
     error::Error,
-    execution_state::SharedExecutionState,
+    execution_state::ExecutionState,
     Cpu,
 };
 use eframe::egui::Color32;
-use io::SharedIO;
-use ppu::{oam::ObjectAttributeMemory, vram::Vram, Ppu};
 
 pub mod boot;
 pub mod cartridge;
@@ -16,6 +16,7 @@ pub mod cpu;
 pub mod io;
 pub mod memory;
 pub mod ppu;
+pub mod bus;
 
 pub const DISPLAY_HEIGHT_PIXELS: usize = 144;
 pub const DISPLAY_WIDTH_PIXELS: usize = 160;
@@ -28,35 +29,20 @@ pub const LIGHTEST_COLOR: Color32 = Color32::from_rgb(224, 248, 208);
 pub const OFF_COLOR: Color32 = Color32::from_rgb(133, 159, 88);
 
 pub struct Emulator {
-    shared_io: SharedIO,
-    cpu: Cpu<SharedBus>,
-    ppu: Ppu,
+    cpu: Cpu,
     empty_display: Vec<Color32>,
     breakpoints: Vec<u16>,
 }
 
 impl Emulator {
     pub fn new(boot_rom: BootRom, cartridge: Cartridge) -> Self {
-        let vram = Vram::new();
-        let shared_io = SharedIO::new();
-        let oam = ObjectAttributeMemory::new();
-
-        let bus = MainBus::new(
+        let bus = Bus::new(
             boot_rom,
             cartridge,
-            vram.clone(),
-            shared_io.clone(),
-            oam.clone(),
         );
-        let shared_bus = SharedBus::new(bus);
-
-        let cpu = Cpu::new(shared_bus);
-        let ppu = Ppu::new(vram, shared_io.clone(), oam);
 
         Self {
-            shared_io,
-            cpu,
-            ppu,
+            cpu: Cpu::new(bus),
             empty_display: Self::off_display(),
             breakpoints: Vec::new(),
         }
@@ -66,7 +52,7 @@ impl Emulator {
         self.breakpoints.push(address);
     }
 
-    pub fn execution_state(&self) -> SharedExecutionState {
+    pub fn execution_state(&self) -> &ExecutionState {
         self.cpu.execution_state()
     }
 
@@ -75,21 +61,21 @@ impl Emulator {
     }
 
     pub fn get_pixels(&mut self) -> Vec<Color32> {
-        let mut screen_on = false;
+        let lcd = self.cpu.bus_mut().io_mut().lcd_mut();
 
-        self.shared_io.with_lcd_mut(|lcd| {
-            screen_on = lcd.get_control().lcd_enabled();
-            lcd.write_lcd_y(0x90);
-            // let lcd_y = lcd.read_lcd_y();
-            // if lcd_y >= 153 {
-            //     lcd.write_lcd_y(0);
-            // } else {
-            //     lcd.write_lcd_y(lcd_y + 1);
-            // }
-        });
+        lcd.write_lcd_y(0x90);
+
+        let screen_on = lcd.get_control().lcd_enabled();
+
+        // let lcd_y = lcd.read_lcd_y();
+        // if lcd_y >= 153 {
+        //     lcd.write_lcd_y(0);
+        // } else {
+        //     lcd.write_lcd_y(lcd_y + 1);
+        // }
 
         if screen_on {
-            self.ppu.render()
+            self.cpu.bus_mut().render()
         } else {
             self.empty_display.clone()
         }
@@ -118,4 +104,21 @@ impl Emulator {
 
         pixels
     }
+}
+
+
+pub fn read_cartridge<P>(path: P) -> Cartridge
+where
+    P: AsRef<Path>,
+{
+    let mut cartridge_file = std::fs::File::open(path).unwrap();
+    Cartridge::read(&mut cartridge_file).unwrap()
+}
+
+pub fn read_boot_rom<P>(path: P) -> BootRom
+where
+    P: AsRef<Path>,
+{
+    let mut boot_rom_file = std::fs::File::open(path).unwrap();
+    BootRomReader::read(&mut boot_rom_file).unwrap()
 }

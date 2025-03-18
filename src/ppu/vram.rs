@@ -1,6 +1,3 @@
-use std::{cell::RefCell, rc::Rc};
-
-
 #[derive(Debug, Clone, Copy)]
 pub enum ColorId {
     Zero,
@@ -90,12 +87,22 @@ impl From<TileId> for u8 {
 
 #[derive(Debug, Clone, Copy)]
 pub struct VramBank {
+}
+
+impl VramBank {
+}
+
+#[derive(Clone)]
+pub struct Vram {
     tiles: [Tile; 384],
     map0: [TileId; 1024],
     map1: [TileId; 1024],
 }
 
-impl VramBank {
+impl Vram {
+    const TILE_MAP_OFFSET: u16 = 0x1800;
+    const TILE_MAP_SIZE: u16 = 0x0400;
+
     pub fn zeroed() -> Self {
         Self {
             tiles: [Tile::zeroed(); 384],
@@ -103,43 +110,17 @@ impl VramBank {
             map1: [TileId::zeroed(); 1024],
         }
     }
-}
 
-#[derive(Clone)]
-pub struct Vram {
-    inner: Rc<RefCell<VramBank>>,
-}
-
-impl Vram {
-    const TILE_MAP_OFFSET: u16 = 0x1800;
-    const TILE_MAP_SIZE: u16 = 0x0400;
-
-    pub fn new() -> Self {
-        let vram_bank = VramBank::zeroed();
-
-        Self {
-            inner: Rc::new(RefCell::new(vram_bank)),
-        }
+    pub fn get_tile(&self, id: TileId) -> &Tile {
+        &self.tiles[id.0 as usize]
     }
 
-    pub fn get_tile(&self, id: TileId) -> Tile {
-        let inner = self.inner.borrow();
-
-        inner.tiles[id.0 as usize]
+    pub fn get_map_0(&self) -> &[TileId; 1024] {
+        &self.map0
     }
 
-    pub fn get_tile_colors(&self, id: TileId) -> [[ColorId; 8]; 8] {
-        *self.inner.borrow().tiles[id.0 as usize].color_data()
-    }
-
-    pub fn get_map_0(&self) -> [TileId; 1024] {
-        let inner = self.inner.borrow();
-        inner.map0
-    }
-
-    pub fn get_map_1(&self) -> [TileId; 1024] {
-        let inner = self.inner.borrow();
-        inner.map1
+    pub fn get_map_1(&self) -> &[TileId; 1024] {
+        &self.map1
     }
 
     pub fn read_u8(&self, address: u16) -> Result<u8, crate::cpu::error::Error> {
@@ -150,13 +131,13 @@ impl Vram {
                 let tile_index = vram_addr / 16;
                 let pixel_index = vram_addr % 16;
 
-                self.inner.borrow().tiles[tile_index as usize].read(pixel_index as usize)
+                self.tiles[tile_index as usize].read(pixel_index as usize)
             }
             0x1800..=0x1BFF => {
-                self.inner.borrow().map0[(vram_addr - Self::TILE_MAP_OFFSET) as usize].0
+                self.map0[(vram_addr - Self::TILE_MAP_OFFSET) as usize].0
             }
             0x1C00..=0x1FFF => {
-                self.inner.borrow().map1
+                self.map1
                     [(vram_addr - Self::TILE_MAP_OFFSET - Self::TILE_MAP_SIZE) as usize]
                     .0
             }
@@ -166,7 +147,7 @@ impl Vram {
         })
     }
 
-    pub fn write_u8(&self, address: u16, data: u8) -> Result<(), crate::cpu::error::Error> {
+    pub fn write_u8(&mut self, address: u16, data: u8) -> Result<(), crate::cpu::error::Error> {
         let vram_addr = address - 0x8000;
 
         match vram_addr {
@@ -174,13 +155,13 @@ impl Vram {
                 let tile_index = vram_addr / 16;
                 let pixel_index = vram_addr % 16;
 
-                self.inner.borrow_mut().tiles[tile_index as usize].write(pixel_index as usize, data);
+                self.tiles[tile_index as usize].write(pixel_index as usize, data);
             }
             0x1800..=0x1BFF => {
-                self.inner.borrow_mut().map0[(vram_addr - Self::TILE_MAP_OFFSET) as usize].0 = data;
+                self.map0[(vram_addr - Self::TILE_MAP_OFFSET) as usize].0 = data;
             }
             0x1C00..=0x1FFF => {
-                self.inner.borrow_mut().map1
+                self.map1
                     [(vram_addr - Self::TILE_MAP_OFFSET - Self::TILE_MAP_SIZE) as usize]
                     .0 = data;
             }

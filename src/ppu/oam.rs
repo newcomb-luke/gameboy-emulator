@@ -1,5 +1,3 @@
-use std::{cell::RefCell, rc::Rc};
-
 use super::vram::TileId;
 
 #[derive(Debug, Clone, Copy)]
@@ -23,13 +21,13 @@ impl ObjectAttributes {
 
 #[derive(Clone)]
 pub struct ObjectAttributeMemory {
-    objects: Rc<RefCell<[ObjectAttributes; 40]>>,
+    objects: [ObjectAttributes; 40],
 }
 
 impl ObjectAttributeMemory {
-    pub fn new() -> Self {
+    pub fn zeroed() -> Self {
         Self {
-            objects: Rc::new(RefCell::new([ObjectAttributes::zeroed(); 40])),
+            objects: [ObjectAttributes::zeroed(); 40],
         }
     }
 
@@ -37,7 +35,7 @@ impl ObjectAttributeMemory {
         let oam_addr = address - 0xFE00;
         let object_index = (oam_addr / 4) as usize;
         let attribute_index = oam_addr % 4;
-        let object = &self.objects.borrow()[object_index];
+        let object = &self.objects[object_index];
 
         match attribute_index {
             0 => object.y_position,
@@ -48,11 +46,11 @@ impl ObjectAttributeMemory {
         }
     }
 
-    pub fn write_u8(&self, address: u16, data: u8) {
+    pub fn write_u8(&mut self, address: u16, data: u8) {
         let oam_addr = address - 0xFE00;
         let object_index = (oam_addr / 4) as usize;
         let attribute_index = oam_addr % 4;
-        let object = &mut self.objects.borrow_mut()[object_index];
+        let object = &mut self.objects[object_index];
 
         match attribute_index {
             0 => object.y_position = data,
