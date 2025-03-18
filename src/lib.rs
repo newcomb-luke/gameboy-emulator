@@ -3,20 +3,16 @@ use std::path::Path;
 use boot::{BootRom, BootRomReader};
 use bus::Bus;
 use cartridge::Cartridge;
-use cpu::{
-    error::Error,
-    execution_state::ExecutionState,
-    Cpu,
-};
+use cpu::{error::Error, execution_state::ExecutionState, Cpu};
 use eframe::egui::Color32;
 
 pub mod boot;
+pub mod bus;
 pub mod cartridge;
 pub mod cpu;
 pub mod io;
 pub mod memory;
 pub mod ppu;
-pub mod bus;
 
 pub const DISPLAY_HEIGHT_PIXELS: usize = 144;
 pub const DISPLAY_WIDTH_PIXELS: usize = 160;
@@ -27,7 +23,7 @@ pub const DARKEST_COLOR: Color32 = Color32::from_rgb(8, 24, 32);
 pub const DARKER_COLOR: Color32 = Color32::from_rgb(52, 104, 86);
 pub const LIGHTER_COLOR: Color32 = Color32::from_rgb(136, 192, 112);
 pub const LIGHTEST_COLOR: Color32 = Color32::from_rgb(224, 248, 208);
-pub const OFF_COLOR: Color32 = Color32::from_rgb(133, 159, 88);
+pub const OFF_COLOR: Color32 = Color32::from_rgb(234, 255, 218);
 
 pub struct Emulator {
     cpu: Cpu,
@@ -37,10 +33,7 @@ pub struct Emulator {
 
 impl Emulator {
     pub fn new(boot_rom: BootRom, cartridge: Cartridge) -> Self {
-        let bus = Bus::new(
-            boot_rom,
-            cartridge,
-        );
+        let bus = Bus::new(boot_rom, cartridge);
 
         Self {
             cpu: Cpu::new(bus),
@@ -98,7 +91,6 @@ impl Emulator {
         Box::new([OFF_COLOR; TOTAL_PIXELS])
     }
 }
-
 
 pub fn read_cartridge<P>(path: P) -> Cartridge
 where

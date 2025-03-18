@@ -1,7 +1,13 @@
 use eframe::egui;
 
 use crate::{
-    boot::BootRom, cartridge::Cartridge, cpu::error::Error, io::IO, memory::ram::{HighRam, WorkRam}, ppu::Ppu, TOTAL_PIXELS
+    boot::BootRom,
+    cartridge::Cartridge,
+    cpu::error::Error,
+    io::IO,
+    memory::ram::{HighRam, WorkRam},
+    ppu::Ppu,
+    TOTAL_PIXELS,
 };
 
 #[derive(Clone)]
@@ -15,10 +21,7 @@ pub struct Bus {
 }
 
 impl Bus {
-    pub fn new(
-        boot_rom: BootRom,
-        cartridge: Cartridge,
-    ) -> Self {
+    pub fn new(boot_rom: BootRom, cartridge: Cartridge) -> Self {
         Self {
             ppu: Ppu::new(),
             boot_rom,

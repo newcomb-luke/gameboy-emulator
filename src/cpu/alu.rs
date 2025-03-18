@@ -316,7 +316,12 @@ impl Cpu {
 
 #[cfg(test)]
 mod tests {
-    use crate::{boot::DEFAULT_BOOT_ROM, bus::Bus, cartridge::Cartridge, cpu::{execution_state::Flags, Cpu}};
+    use crate::{
+        boot::DEFAULT_BOOT_ROM,
+        bus::Bus,
+        cartridge::Cartridge,
+        cpu::{execution_state::Flags, Cpu},
+    };
 
     fn test_alu_operation<F>(f: F)
     where

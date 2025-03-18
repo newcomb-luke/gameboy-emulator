@@ -17,11 +17,7 @@ impl Decoder {
         Self {}
     }
 
-    pub fn decode_one(
-        &self,
-        state: &ExecutionState,
-        bus: &Bus,
-    ) -> Result<Instruction, Error> {
+    pub fn decode_one(&self, state: &ExecutionState, bus: &Bus) -> Result<Instruction, Error> {
         let ip = state.instruction_pointer();
         let opcode_byte = bus.read_u8(state.instruction_pointer())?;
 

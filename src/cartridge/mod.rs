@@ -21,13 +21,27 @@ impl Cartridge {
     pub fn empty() -> Self {
         let bank0 = [0u8; BANK_SIZE];
         let bank1 = [0u8; BANK_SIZE];
-        let header = CartridgeHeader::new("EMPTY", ManufacturerCode::zeroed(), header::CgbFlag::No, header::NewLicenseeCode::Unknown('\0', '\0'), header::SgbFlag::No, header::CartridgeType::RomOnly, header::RomSize::Size32KiB, header::RamSize::NoRam, header::DestinationCode::Japan, header::OldLicenseeCode::UseNewLicenseeCode, 0, 0, 0);
+        let header = CartridgeHeader::new(
+            "EMPTY",
+            ManufacturerCode::zeroed(),
+            header::CgbFlag::No,
+            header::NewLicenseeCode::Unknown('\0', '\0'),
+            header::SgbFlag::No,
+            header::CartridgeType::RomOnly,
+            header::RomSize::Size32KiB,
+            header::RamSize::NoRam,
+            header::DestinationCode::Japan,
+            header::OldLicenseeCode::UseNewLicenseeCode,
+            0,
+            0,
+            0,
+        );
 
         Self {
             bank0,
             extra_banks: vec![bank1],
             header,
-            bank_selected: 0
+            bank_selected: 0,
         }
     }
 

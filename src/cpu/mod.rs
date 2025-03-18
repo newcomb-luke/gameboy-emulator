@@ -72,14 +72,19 @@ impl Cpu {
                 let result = match current_instruction {
                     Instruction::Inc8(_) => self.inc_u8(val),
                     Instruction::Dec8(_) => self.dec_u8(val),
-                    _ => panic!()
+                    _ => panic!(),
                 };
                 self.update_r8(r8, result)?;
             }
             Instruction::LdReg8Imm(r8, imm8) => {
                 self.update_r8(r8, imm8.into())?;
             }
-            Instruction::Rlca | Instruction::Rrca | Instruction::Rla | Instruction::Rra | Instruction::Daa | Instruction::Cpl => {
+            Instruction::Rlca
+            | Instruction::Rrca
+            | Instruction::Rla
+            | Instruction::Rra
+            | Instruction::Daa
+            | Instruction::Cpl => {
                 let a = self.get_r8(Register8::A)?;
                 let result = match current_instruction {
                     Instruction::Rlca => self.rotate_left_u8(a, false, false),
@@ -88,7 +93,7 @@ impl Cpu {
                     Instruction::Rra => self.rotate_right_u8(a, false, true),
                     Instruction::Daa => self.decimal_adjust(a),
                     Instruction::Cpl => self.not_u8(a),
-                    _ => panic!()
+                    _ => panic!(),
                 };
                 self.update_r8(Register8::A, result)?;
             }
@@ -266,7 +271,16 @@ impl Cpu {
             Instruction::Di => self.state.set_interrupts_enabled(false),
             Instruction::Ei => self.state.set_interrupts_enabled(true),
             // Prefixed
-            Instruction::Rlc(r8) | Instruction::Rrc(r8) | Instruction::Rl(r8) | Instruction::Rr(r8) | Instruction::Sla(r8) | Instruction::Sra(r8) | Instruction::Swap(r8) | Instruction::Srl(r8) | Instruction::Res(_, r8) | Instruction::Set(_, r8) => {
+            Instruction::Rlc(r8)
+            | Instruction::Rrc(r8)
+            | Instruction::Rl(r8)
+            | Instruction::Rr(r8)
+            | Instruction::Sla(r8)
+            | Instruction::Sra(r8)
+            | Instruction::Swap(r8)
+            | Instruction::Srl(r8)
+            | Instruction::Res(_, r8)
+            | Instruction::Set(_, r8) => {
                 let val = self.get_r8(r8)?;
                 let result = match current_instruction {
                     Instruction::Rlc(_) => self.rotate_left_u8(val, true, false),
@@ -279,7 +293,7 @@ impl Cpu {
                     Instruction::Srl(_) => self.shift_right_logical(val),
                     Instruction::Res(idx, _) => self.reset_bit_u8(idx.into(), val),
                     Instruction::Set(idx, _) => self.set_bit_u8(idx.into(), val),
-                    _ => panic!()
+                    _ => panic!(),
                 };
                 self.update_r8(r8, result)?;
             }

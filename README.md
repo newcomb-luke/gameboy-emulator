@@ -121,7 +121,7 @@ Currently drawing the screen is slow, and will need to be improved.
     - [x] Window
     - [x] Device outline
     - [x] Display
-    - [ ] Buttons
+    - [x] Buttons
     - [ ] Decorative text / details
     - [ ] Keyboard inputs
 - [ ] Graphics

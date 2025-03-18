@@ -84,8 +84,8 @@ impl IO {
     pub fn write_u8(&mut self, address: u16, data: u8) -> Result<(), crate::cpu::error::Error> {
         match address {
             0xFF10 => self.audio.channel_1_mut().write_sweep(data),
-            0xFF11 => 
-                self.audio
+            0xFF11 => self
+                .audio
                 .channel_1_mut()
                 .write_length_timer_and_duty_cycle(data),
             0xFF12 => self.audio.channel_1_mut().write_volume_and_envelope(data),

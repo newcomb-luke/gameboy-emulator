@@ -3,13 +3,13 @@ pub enum ColorId {
     Zero,
     One,
     Two,
-    Three
+    Three,
 }
 
 #[derive(Debug, Clone, Copy)]
 pub struct Tile {
     data: [u8; 16],
-    colors: [[ColorId; 8]; 8]
+    colors: [[ColorId; 8]; 8],
 }
 
 impl Tile {
@@ -86,11 +86,9 @@ impl From<TileId> for u8 {
 }
 
 #[derive(Debug, Clone, Copy)]
-pub struct VramBank {
-}
+pub struct VramBank {}
 
-impl VramBank {
-}
+impl VramBank {}
 
 #[derive(Clone)]
 pub struct Vram {
@@ -133,13 +131,9 @@ impl Vram {
 
                 self.tiles[tile_index as usize].read(pixel_index as usize)
             }
-            0x1800..=0x1BFF => {
-                self.map0[(vram_addr - Self::TILE_MAP_OFFSET) as usize].0
-            }
+            0x1800..=0x1BFF => self.map0[(vram_addr - Self::TILE_MAP_OFFSET) as usize].0,
             0x1C00..=0x1FFF => {
-                self.map1
-                    [(vram_addr - Self::TILE_MAP_OFFSET - Self::TILE_MAP_SIZE) as usize]
-                    .0
+                self.map1[(vram_addr - Self::TILE_MAP_OFFSET - Self::TILE_MAP_SIZE) as usize].0
             }
             _ => {
                 return Err(crate::cpu::error::Error::MemoryFault(address));
@@ -161,9 +155,8 @@ impl Vram {
                 self.map0[(vram_addr - Self::TILE_MAP_OFFSET) as usize].0 = data;
             }
             0x1C00..=0x1FFF => {
-                self.map1
-                    [(vram_addr - Self::TILE_MAP_OFFSET - Self::TILE_MAP_SIZE) as usize]
-                    .0 = data;
+                self.map1[(vram_addr - Self::TILE_MAP_OFFSET - Self::TILE_MAP_SIZE) as usize].0 =
+                    data;
             }
             _ => {
                 return Err(crate::cpu::error::Error::MemoryFault(address));
