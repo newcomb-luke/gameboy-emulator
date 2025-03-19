@@ -4,7 +4,7 @@ A simple GameBoy emulator written in Rust just for fun
 ## Current State:
 
 The emulator can make it through the Boot ROM successfully and enter a game. The Nintendo logo scrolls down from the top of the screen.
-Currently drawing the screen is slow, and will need to be improved.
+Both keyboard and click inputs are functional.
 
 ![Screenshot of emulator](images/progress-screenshot.png)
 
@@ -123,7 +123,7 @@ Currently drawing the screen is slow, and will need to be improved.
     - [x] Display
     - [x] Buttons
     - [ ] Decorative text / details
-    - [ ] Keyboard inputs
+    - [x] Keyboard inputs
 - [ ] Graphics
     - [x] Reading tiles from VRAM
     - [x] Placing tiles based on tile map
