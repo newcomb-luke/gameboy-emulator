@@ -38,6 +38,10 @@ impl Cpu {
             .state
             .instruction_pointer()
             .wrapping_add(current_instruction.length());
+        
+        if self.state.interrupts_enabled_next() != self.state.interrupts_enabled() {
+            self.state.set_interrupts_enabled(self.state.interrupts_enabled_next());
+        }
 
         match current_instruction {
             Instruction::Nop => {}
@@ -268,8 +272,11 @@ impl Cpu {
             Instruction::LdSpHl => {
                 self.state.set_stack_pointer(self.get_r16(Register16::Hl));
             }
-            Instruction::Di => self.state.set_interrupts_enabled(false),
-            Instruction::Ei => self.state.set_interrupts_enabled(true),
+            Instruction::Di => {
+                self.state.set_interrupts_enabled(false);
+                self.state.set_interrupts_enabled_next(false);
+            },
+            Instruction::Ei => self.state.set_interrupts_enabled_next(true),
             // Prefixed
             Instruction::Rlc(r8)
             | Instruction::Rrc(r8)

@@ -13,6 +13,7 @@ pub struct ExecutionState {
     reg_a: u8,
     flags: Flags,
     interrupts_enabled: bool,
+    interrupts_enabled_next: bool,
 }
 
 impl ExecutionState {
@@ -26,6 +27,7 @@ impl ExecutionState {
             reg_a: 0,
             flags: Flags::zeros(),
             interrupts_enabled: false,
+            interrupts_enabled_next: false,
         }
     }
 
@@ -72,6 +74,14 @@ impl ExecutionState {
 
     pub fn set_interrupts_enabled(&mut self, enabled: bool) {
         self.interrupts_enabled = enabled;
+    }
+
+    pub fn interrupts_enabled_next(&self) -> bool {
+        self.interrupts_enabled_next
+    }
+
+    pub fn set_interrupts_enabled_next(&mut self, enabled: bool) {
+        self.interrupts_enabled_next = enabled;
     }
 
     pub fn reg_a(&self) -> u8 {
@@ -298,14 +308,15 @@ impl Display for ExecutionState {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(
             f,
-            "IP: {:04x} SP: {:04x} BC: {:04x} DE: {:04x} HL: {:04x} AF: {:04x} {}",
+            "IP: {:04x} SP: {:04x} BC: {:04x} DE: {:04x} HL: {:04x} AF: {:04x} {} IME: {}",
             self.instruction_pointer,
             self.stack_pointer,
             self.reg_bc,
             self.reg_de,
             self.reg_hl,
             self.reg_af(),
-            self.flags
+            self.flags,
+            if self.interrupts_enabled { 1 } else { 0 }
         )
     }
 }

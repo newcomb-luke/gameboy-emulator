@@ -5,8 +5,7 @@ use std::{path::PathBuf, time::Instant};
 use clap::Parser;
 use eframe::{
     egui::{
-        self, load::SizedTexture, text::LayoutJob, Color32, ColorImage, CornerRadius, FontId,
-        Label, Margin, Pos2, Rect, Sense, Shadow, Shape, TextFormat, Ui, Vec2, Widget,
+        self, load::SizedTexture, text::LayoutJob, Color32, ColorImage, CornerRadius, FontId, Label, Margin, Pos2, Rect, Sense, Shadow, Shape, TextFormat, Ui, Vec2, Widget
     },
     epaint::{
         text::{FontInsert, InsertFontFamily},
@@ -14,7 +13,7 @@ use eframe::{
     },
 };
 use gameboy_emulator::{
-    boot::DEFAULT_BOOT_ROM, read_boot_rom, read_cartridge, Emulator, DISPLAY_SIZE_PIXELS, OFF_COLOR,
+    boot::DEFAULT_BOOT_ROM, read_boot_rom, read_cartridge, DPadButtonState, DPadState, Emulator, InputState, DISPLAY_SIZE_PIXELS, OFF_COLOR
 };
 
 const GAMEBOY_HEIGHT: f32 = 148.0; // mm
@@ -97,6 +96,9 @@ struct EmuApp {
     emulator: Emulator,
     display_texture: egui::TextureHandle,
     last_frame_time: Instant,
+    breakpoint_reached: bool,
+    input_state: InputState,
+    dpad: DPad
 }
 
 impl eframe::App for EmuApp {
@@ -105,14 +107,37 @@ impl eframe::App for EmuApp {
         let delta = now - self.last_frame_time;
         let fps = 1.0 / delta.as_secs_f32();
 
-        let mut breakpoint_reached = false;
+        ctx.input(|input| {
+            let arrow_up = input.key_down(egui::Key::ArrowUp);
+            let arrow_down = input.key_down(egui::Key::ArrowDown);
+            let arrow_left = input.key_down(egui::Key::ArrowLeft);
+            let arrow_right = input.key_down(egui::Key::ArrowRight);
+
+            let a_button = input.key_down(egui::Key::Z);
+            let b_button = input.key_down(egui::Key::X);
+
+            let start_button = input.key_down(egui::Key::Enter);
+            let select_button = input.key_down(egui::Key::Backspace);
+
+            self.input_state.a_pressed = a_button;
+            self.input_state.b_pressed = b_button;
+            self.input_state.select_pressed = select_button;
+            self.input_state.start_pressed = start_button;
+            self.dpad.keyboard_input_state = DPadButtonState::new(arrow_up, arrow_down, arrow_left, arrow_right);
+        });
+
+        self.show_gameboy(ctx, self.breakpoint_reached, fps);
+
+        self.input_state.dpad_state = self.dpad.state;
+
+        self.breakpoint_reached = false;
 
         for i in 0..500 {
             if let Some(_) = self.emulator.breakpoint_reached() {
-                breakpoint_reached = true;
+                self.breakpoint_reached = true;
                 break;
             } else {
-                self.emulator.step().unwrap();
+                self.emulator.step(self.input_state).unwrap();
 
                 if (i % 4) == 0 {
                     let pixels = self.emulator.get_pixels();
@@ -128,7 +153,6 @@ impl eframe::App for EmuApp {
             }
         }
 
-        self.show_gameboy(ctx, breakpoint_reached, fps);
         ctx.request_repaint();
 
         self.last_frame_time = now;
@@ -160,6 +184,9 @@ impl EmuApp {
                 egui::TextureOptions::NEAREST,
             ),
             last_frame_time: Instant::now(),
+            breakpoint_reached: false,
+            input_state: InputState::empty(),
+            dpad: DPad::new()
         }
     }
 
@@ -222,25 +249,41 @@ impl EmuApp {
         const A_POS: Pos2 = Pos2::new(SCALED_GAMEBOY_WIDTH * 0.88, SCALED_GAMEBOY_HEIGHT * 0.65);
         const B_POS: Pos2 = Pos2::new(SCALED_GAMEBOY_WIDTH * 0.72, SCALED_GAMEBOY_HEIGHT * 0.70);
 
-        self.show_ab_button(ui, "A", A_POS);
-        self.show_ab_button(ui, "B", B_POS);
+        let a_clicked = self.show_ab_button(ui, "A", A_POS, self.input_state.a_pressed);
+        let b_clicked = self.show_ab_button(ui, "B", B_POS, self.input_state.b_pressed);
+
+        if !self.input_state.a_pressed {
+            self.input_state.a_pressed = a_clicked;
+        }
+
+        if !self.input_state.b_pressed {
+            self.input_state.b_pressed = b_clicked;
+        }
 
         const START_POS: Pos2 = Pos2::new(SCALED_GAMEBOY_WIDTH * 0.62, SCALED_GAMEBOY_HEIGHT * 0.83);
         const SELECT_POS: Pos2 = Pos2::new(SCALED_GAMEBOY_WIDTH * 0.42, SCALED_GAMEBOY_HEIGHT * 0.83);
 
-        self.show_start_button(ui, "START", START_POS);
-        self.show_start_button(ui, "SELECT", SELECT_POS);
+        let start_clicked = self.show_start_button(ui, "START", START_POS, self.input_state.start_pressed);
+        let select_clicked = self.show_start_button(ui, "SELECT", SELECT_POS, self.input_state.select_pressed);
+
+        if !self.input_state.start_pressed {
+            self.input_state.start_pressed = start_clicked;
+        }
+
+        if !self.input_state.select_pressed {
+            self.input_state.select_pressed = select_clicked;
+        }
 
         const DPAD_POS: Pos2 = Pos2::new(SCALED_GAMEBOY_WIDTH * 0.19, SCALED_GAMEBOY_HEIGHT * 0.67);
 
         self.show_dpad(ui, DPAD_POS);
     }
 
-    fn show_ab_button(&mut self, ui: &mut Ui, text: &str, pos: Pos2) {
+    fn show_ab_button(&mut self, ui: &mut Ui, text: &str, pos: Pos2, activation_override: bool) -> bool {
         let font_id = FontId::new(24.0, egui::FontFamily::Name("Corporate".into()));
         const BUTTON_SIZE: Vec2 = Vec2::new(SCALED_BUTTON_DIAMETER, SCALED_BUTTON_DIAMETER);
 
-        ui.put(Rect::from_center_size(pos, BUTTON_SIZE), ABButton {});
+        let clicked = ui.put(Rect::from_center_size(pos, BUTTON_SIZE), ABButton::new(activation_override)).dragged();
 
         let text_pos = Pos2::new(pos.x, pos.y + 50.0);
 
@@ -250,15 +293,17 @@ impl EmuApp {
         b_button.append(text, 0.0, TextFormat::simple(font_id, FONT_COLOR));
 
         ui.put(b_text_center, Label::new(b_button));
+
+        clicked
     }
 
-    fn show_start_button(&mut self, ui: &mut Ui, text: &str, pos: Pos2) {
+    fn show_start_button(&mut self, ui: &mut Ui, text: &str, pos: Pos2, activation_override: bool) -> bool {
         const BUTTON_SIZE: Vec2 = Vec2::new(SCALED_BUTTON_DIAMETER, SCALED_BUTTON_DIAMETER * 0.3);
 
-        ui.put(
+        let clicked = ui.put(
             Rect::from_center_size(pos, BUTTON_SIZE),
-            StartButton {},
-        );
+            StartButton::new(activation_override),
+        ).dragged();
 
         let text_pos = Pos2::new(pos.x, pos.y + 30.0);
         let text_center = Rect::from_center_size(
@@ -271,6 +316,8 @@ impl EmuApp {
         button.append(text, 0.0, TextFormat::simple(font_id, FONT_COLOR));
 
         ui.put(text_center, Label::new(button));
+
+        clicked
     }
 
     fn show_dpad(&mut self, ui: &mut Ui, pos: Pos2) {
@@ -278,12 +325,22 @@ impl EmuApp {
 
         ui.put(
             Rect::from_center_size(pos, DPAD_SIZE),
-            DPad {}
+            &mut self.dpad
         );
     }
 }
 
-struct ABButton {}
+struct ABButton {
+    activated: bool
+}
+
+impl ABButton {
+    fn new(activated: bool) -> Self {
+        Self {
+            activated
+        }
+    }
+}
 
 impl Widget for ABButton {
     fn ui(self, ui: &mut egui::Ui) -> egui::Response {
@@ -291,7 +348,7 @@ impl Widget for ABButton {
         let response = ui.allocate_rect(outer_rect_bounds, Sense::drag());
         let interacted = response.dragged();
 
-        let fill_color = if interacted {
+        let fill_color = if interacted | self.activated {
             AB_BUTTON_CLICKED_COLOR
         } else {
             AB_BUTTON_COLOR
@@ -303,7 +360,7 @@ impl Widget for ABButton {
             fill_color,
         );
 
-        let shape = if interacted {
+        let shape = if interacted | self.activated {
             button
         } else {
             let shadow = DROP_SHADOW.as_shape(outer_rect_bounds, CornerRadius::same(255));
@@ -318,7 +375,17 @@ impl Widget for ABButton {
     }
 }
 
-struct StartButton {}
+struct StartButton {
+    activated: bool
+}
+
+impl StartButton {
+    fn new(activated: bool) -> Self {
+        Self {
+            activated
+        }
+    }
+}
 
 impl Widget for StartButton {
     fn ui(self, ui: &mut Ui) -> egui::Response {
@@ -326,7 +393,7 @@ impl Widget for StartButton {
         let response = ui.allocate_rect(outer_rect_bounds, Sense::drag());
         let interacted = response.dragged();
 
-        let fill_color = if interacted {
+        let fill_color = if interacted | self.activated {
             START_BUTTON_CLICKED_COLOR
         } else {
             START_BUTTON_COLOR
@@ -338,7 +405,7 @@ impl Widget for StartButton {
             fill_color,
         ));
 
-        let shape = if interacted {
+        let shape = if interacted | self.activated {
             button
         } else {
             let shadow = DROP_SHADOW.as_shape(outer_rect_bounds, CornerRadius::same(4));
@@ -353,10 +420,22 @@ impl Widget for StartButton {
     }
 }
 
-struct DPad {}
+struct DPad {
+    keyboard_input_state: DPadButtonState,
+    state: DPadState
+}
 
-impl Widget for DPad {
-    fn ui(mut self, ui: &mut Ui) -> egui::Response {
+impl DPad {
+    fn new() -> Self {
+        Self {
+            keyboard_input_state: DPadButtonState::empty(),
+            state: DPadState::None
+        }
+    }
+}
+
+impl Widget for &mut DPad {
+    fn ui(self, ui: &mut Ui) -> egui::Response {
         let outer_rect_bounds = ui.available_rect_before_wrap();
         let overall_response = ui.allocate_rect(outer_rect_bounds, Sense::drag());
 
@@ -365,17 +444,44 @@ impl Widget for DPad {
         let (top_rect, rest) = outer_rect_bounds.scale_from_center2(Vec2::new(0.3, 1.0)).split_top_bottom_at_fraction(0.4);
         let (_, bottom_rect) = rest.split_top_bottom_at_fraction(1.0 / 3.0);
 
+        let left_response = ui.allocate_rect(left_rect, Sense::drag());
+        let right_response = ui.allocate_rect(right_rect, Sense::drag());
+        let top_response = ui.allocate_rect(top_rect, Sense::drag());
+        let bottom_response = ui.allocate_rect(bottom_rect, Sense::drag());
+
+        let (top, rest) = outer_rect_bounds.split_top_bottom_at_fraction(0.35);
+        let (_, bottom) = rest.split_top_bottom_at_fraction(0.5);
+        let (top_left, rest) = top.split_left_right_at_fraction(0.35);
+        let (_, top_right) = rest.split_left_right_at_fraction(0.5);
+        let (bottom_left, rest) = bottom.split_left_right_at_fraction(0.35);
+        let (_, bottom_right) = rest.split_left_right_at_fraction(0.5);
+
+        let top_left_corner = ui.allocate_rect(top_left, Sense::drag());
+        let top_right_corner = ui.allocate_rect(top_right, Sense::drag());
+        let bottom_left_corner = ui.allocate_rect(bottom_left, Sense::drag());
+        let bottom_right_corner = ui.allocate_rect(bottom_right, Sense::drag());
+
+        let left_activated = top_left_corner.dragged() | bottom_left_corner.dragged() | left_response.dragged();
+        let right_activated = top_right_corner.dragged() | bottom_right_corner.dragged() | right_response.dragged();
+        let top_activated = top_left_corner.dragged() | top_right_corner.dragged() | top_response.dragged();
+        let bottom_activated = bottom_left_corner.dragged() | bottom_right_corner.dragged() | bottom_response.dragged();
+
+        let ui_state = DPadButtonState::new(top_activated, bottom_activated, left_activated, right_activated);
+        let overall_state = self.keyboard_input_state | ui_state;
+
+        let dpad_state = DPadState::from_buttons(overall_state);
+        self.state = dpad_state;
+
         let mut shadows = Vec::new();
         let mut buttons = Vec::new();
 
         let center = Shape::from(RectShape::filled(center_rect, CornerRadius::ZERO, DPAD_BUTTON_COLOR));
-
         buttons.push(center);
 
-        let button_left = self.paint_button(ui, left_rect, &mut buttons, &mut shadows);
-        let button_right = self.paint_button(ui, right_rect, &mut buttons, &mut shadows);
-        let button_top = self.paint_button(ui, top_rect, &mut buttons, &mut shadows);
-        let button_bottom = self.paint_button(ui, bottom_rect, &mut buttons, &mut shadows);
+        self.paint_button(left_rect, &mut buttons, &mut shadows, dpad_state.is_left());
+        self.paint_button(right_rect, &mut buttons, &mut shadows, dpad_state.is_right());
+        self.paint_button(top_rect, &mut buttons, &mut shadows, dpad_state.is_up());
+        self.paint_button(bottom_rect, &mut buttons, &mut shadows, dpad_state.is_down());
 
         if ui.is_rect_visible(outer_rect_bounds) {
             let shadows = Shape::Vec(shadows);
@@ -389,19 +495,16 @@ impl Widget for DPad {
 }
 
 impl DPad {
-    fn paint_button(&mut self, ui: &mut Ui, rect: Rect, buttons: &mut Vec<Shape>, shadows: &mut Vec<Shape>) -> bool {
-        let response = ui.allocate_rect(rect, Sense::drag());
-        let interacted = response.dragged();
-
+    fn paint_button(&mut self, rect: Rect, buttons: &mut Vec<Shape>, shadows: &mut Vec<Shape>, activation_override: bool) {
         let corner_radius = CornerRadius::same(2);
 
-        let fill_color = if interacted {
+        let fill_color = if activation_override {
             DPAD_BUTTON_CLICKED_COLOR
         } else {
             DPAD_BUTTON_COLOR
         };
 
-        if !interacted {
+        if !activation_override {
             let shadow = DROP_SHADOW.as_shape(rect, corner_radius);
             let shape = Shape::from(shadow);
             shadows.push(shape);
@@ -410,7 +513,5 @@ impl DPad {
         let button = Shape::from(RectShape::filled(rect, corner_radius, fill_color));
 
         buttons.push(button);
-
-        response.dragged()
     }
 }

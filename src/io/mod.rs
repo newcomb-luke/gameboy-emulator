@@ -1,5 +1,6 @@
 use audio::Audio;
 use interrupts::Interrupts;
+use joypad::JoypadInput;
 use lcd::Lcd;
 use serial::Serial;
 
@@ -7,6 +8,7 @@ pub mod audio;
 pub mod interrupts;
 pub mod lcd;
 pub mod serial;
+pub mod joypad;
 
 #[derive(Debug, Clone, Copy)]
 pub struct IORegister(u8);
@@ -27,7 +29,7 @@ impl IORegister {
 
 #[derive(Clone, Copy)]
 pub struct IO {
-    joypad_input: IORegister,
+    joypad_input: JoypadInput,
     serial: Serial,
     audio: Audio,
     lcd: Lcd,
@@ -38,7 +40,7 @@ pub struct IO {
 impl IO {
     pub fn new() -> Self {
         Self {
-            joypad_input: IORegister::new(),
+            joypad_input: JoypadInput::new(),
             serial: Serial::new(),
             audio: Audio::new(),
             lcd: Lcd::new(),
@@ -59,8 +61,17 @@ impl IO {
         &mut self.lcd
     }
 
+    pub fn joypad(&self) -> &JoypadInput {
+        &self.joypad_input
+    }
+
+    pub fn joypad_mut(&mut self) -> &mut JoypadInput {
+        &mut self.joypad_input
+    }
+
     pub fn read_u8(&self, address: u16) -> Result<u8, crate::cpu::error::Error> {
         Ok(match address {
+            0xFF00 => self.joypad_input.read(),
             0xFF40 => self.lcd.read_control(),
             0xFF41 => self.lcd.read_status(),
             0xFF42 => self.lcd.read_scroll_y(),
@@ -83,6 +94,7 @@ impl IO {
 
     pub fn write_u8(&mut self, address: u16, data: u8) -> Result<(), crate::cpu::error::Error> {
         match address {
+            0xFF00 => self.joypad_input.write(data),
             0xFF10 => self.audio.channel_1_mut().write_sweep(data),
             0xFF11 => self
                 .audio

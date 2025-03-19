@@ -1,4 +1,4 @@
-use std::path::Path;
+use std::{ops::BitOr, path::Path};
 
 use boot::{BootRom, BootRomReader};
 use bus::Bus;
@@ -50,7 +50,8 @@ impl Emulator {
         self.cpu.execution_state()
     }
 
-    pub fn step(&mut self) -> Result<(), Error> {
+    pub fn step(&mut self, input_state: InputState) -> Result<(), Error> {
+        self.cpu.bus_mut().io_mut().joypad_mut().set_inputs(input_state);
         self.cpu.execute_one()
     }
 
@@ -106,4 +107,126 @@ where
 {
     let mut boot_rom_file = std::fs::File::open(path).unwrap();
     BootRomReader::read(&mut boot_rom_file).unwrap()
+}
+
+#[derive(Clone, Copy, PartialEq, Eq)]
+pub struct DPadButtonState {
+    pub up: bool,
+    pub down: bool,
+    pub left: bool,
+    pub right: bool
+}
+
+impl DPadButtonState {
+    pub fn new(up: bool, down: bool, left: bool, right: bool) -> Self {
+        Self {
+            up,
+            down,
+            left,
+            right
+        }
+    }
+
+    pub fn empty() -> Self {
+        Self {
+            up: false,
+            down: false,
+            left: false,
+            right: false,
+        }
+    }
+}
+
+impl BitOr for DPadButtonState {
+    type Output = Self;
+
+    fn bitor(self, rhs: Self) -> Self::Output {
+        Self {
+            up: self.up | rhs.up,
+            down: self.down | rhs.down,
+            left: self.left | rhs.left,
+            right: self.right | rhs.right,
+        }
+    }
+}
+
+#[derive(Clone, Copy, PartialEq, Eq)]
+pub enum DPadState {
+    None,
+    Left,
+    Up,
+    Right,
+    Down,
+    LeftUp,
+    RightUp,
+    LeftDown,
+    RightDown
+}
+
+impl DPadState {
+    pub fn from_buttons(state: DPadButtonState) -> Self {
+        let left_or_right = match (state.left, state.right) {
+            (true, true) => DPadState::None,
+            (true, false) => DPadState::Left,
+            (false, true) => DPadState::Right,
+            (false, false) => DPadState::None
+        };
+
+        let up_or_down = match (state.up, state.down) {
+            (true, true) => DPadState::None,
+            (true, false) => DPadState::Up,
+            (false, true) => DPadState::Down,
+            (false, false) => DPadState::None,
+        };
+
+        match (left_or_right, up_or_down) {
+            (Self::None, Self::None) => Self::None,
+            (Self::Left, Self::None) => Self::Left,
+            (Self::Right, Self::None) => Self::Right,
+            (Self::Left, Self::Up) => Self::LeftUp,
+            (Self::Right, Self::Up) => Self::RightUp,
+            (Self::Left, Self::Down) => Self::LeftDown,
+            (Self::Right, Self::Down) => Self::RightDown,
+            (Self::None, Self::Up) => Self::Up,
+            (Self::None, Self::Down) => Self::Down,
+            _ => panic!()
+        }
+    }
+
+    pub fn is_left(self) -> bool {
+        (self == Self::Left) | (self == Self::LeftDown) | (self == Self::LeftUp)
+    }
+
+    pub fn is_right(self) -> bool {
+        (self == Self::Right) | (self == Self::RightDown) | (self == Self::RightUp)
+    }
+
+    pub fn is_up(self) -> bool {
+        (self == Self::Up) | (self == Self::LeftUp) | (self == Self::RightUp)
+    }
+
+    pub fn is_down(self) -> bool {
+        (self == Self::Down) | (self == Self::LeftDown) | (self == Self::RightDown)
+    }
+}
+
+#[derive(Clone, Copy, PartialEq, Eq)]
+pub struct InputState {
+    pub a_pressed: bool,
+    pub b_pressed: bool,
+    pub start_pressed: bool,
+    pub select_pressed: bool,
+    pub dpad_state: DPadState
+}
+
+impl InputState {
+    pub fn empty() -> Self {
+        Self {
+            a_pressed: false,
+            b_pressed: false,
+            start_pressed: false,
+            select_pressed: false,
+            dpad_state: DPadState::None
+        }
+    }
 }
