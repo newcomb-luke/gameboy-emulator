@@ -13,7 +13,6 @@ pub struct ExecutionState {
     reg_a: u8,
     flags: Flags,
     interrupts_enabled: bool,
-    interrupts_enabled_next: bool,
 }
 
 impl ExecutionState {
@@ -27,7 +26,6 @@ impl ExecutionState {
             reg_a: 0,
             flags: Flags::zeros(),
             interrupts_enabled: false,
-            interrupts_enabled_next: false,
         }
     }
 
@@ -74,14 +72,6 @@ impl ExecutionState {
 
     pub fn set_interrupts_enabled(&mut self, enabled: bool) {
         self.interrupts_enabled = enabled;
-    }
-
-    pub fn interrupts_enabled_next(&self) -> bool {
-        self.interrupts_enabled_next
-    }
-
-    pub fn set_interrupts_enabled_next(&mut self, enabled: bool) {
-        self.interrupts_enabled_next = enabled;
     }
 
     pub fn reg_a(&self) -> u8 {

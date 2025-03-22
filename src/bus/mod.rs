@@ -4,10 +4,9 @@ use crate::{
     boot::BootRom,
     cartridge::Cartridge,
     cpu::error::Error,
-    io::IO,
+    io::{interrupts::Interrupt, IO},
     memory::ram::{HighRam, WorkRam},
-    ppu::Ppu,
-    TOTAL_PIXELS,
+    ppu::{Ppu, TOTAL_PIXELS},
 };
 
 #[derive(Clone)]
@@ -49,7 +48,7 @@ impl Bus {
             0xFF00..=0xFF7F => self.io.read_u8(address)?,
             0xFF80..=0xFFFE => self.high_ram.read_u8(address),
             _ => {
-                return Err(Error::MemoryFault(address));
+                return Err(Error::MemoryReadFault(address));
             }
         })
     }
@@ -70,7 +69,7 @@ impl Bus {
             0xFF00..=0xFF7F => self.io.write_u8(address, data)?,
             0xFF80..=0xFFFE => self.high_ram.write_u8(address, data),
             _ => {
-                return Err(Error::MemoryFault(address));
+                return Err(Error::MemoryWriteFault(address, data));
             }
         })
     }
@@ -84,8 +83,16 @@ impl Bus {
         self.io.boot_rom_enable() == 0
     }
 
+    pub fn step_ppu(&mut self, cycles: usize) -> (Option<Interrupt>, Option<Interrupt>) {
+        self.ppu.step(self.io.lcd_mut(), cycles)
+    }
+
     pub fn render(&mut self) -> &[egui::Color32; TOTAL_PIXELS] {
-        self.ppu.render(&self.io.lcd_mut())
+        self.ppu.render(self.io.lcd_mut())
+    }
+
+    pub fn io(&self) -> &IO {
+        &self.io
     }
 
     pub fn io_mut(&mut self) -> &mut IO {

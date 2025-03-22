@@ -5,7 +5,7 @@ use instruction::{
     Condition, Instruction, Register16, Register16Memory, Register16Stack, Register8,
 };
 
-use crate::bus::Bus;
+use crate::{bus::Bus, io::interrupts::Interrupt};
 
 pub mod alu;
 pub mod decoder;
@@ -17,6 +17,7 @@ pub struct Cpu {
     state: ExecutionState,
     bus: Bus,
     decoder: Decoder,
+    interrupt_enable_next: bool,
 }
 
 impl Cpu {
@@ -25,6 +26,7 @@ impl Cpu {
             state: ExecutionState::new(),
             bus,
             decoder: Decoder::new(),
+            interrupt_enable_next: false,
         }
     }
 
@@ -32,15 +34,27 @@ impl Cpu {
         &self.state
     }
 
-    pub fn execute_one(&mut self) -> Result<(), Error> {
+    pub fn step(&mut self) -> Result<(), Error> {
+        if self.state.interrupts_enabled() {
+            if let Some(interrupt) = self.detect_interrupt() {
+                // Clear the bit in the IF register
+                self.clear_requested_interrupt(interrupt);
+                // Disable interrupts
+                self.state.set_interrupts_enabled(false);
+                // Call the interrupt handler
+                self.call_interrupt_handler(interrupt)?;
+            }
+        }
+
         let current_instruction = self.decoder.decode_one(&self.state, &self.bus)?;
         let mut next_instruction_address = self
             .state
             .instruction_pointer()
             .wrapping_add(current_instruction.length());
-        
-        if self.state.interrupts_enabled_next() != self.state.interrupts_enabled() {
-            self.state.set_interrupts_enabled(self.state.interrupts_enabled_next());
+
+        if self.interrupt_enable_next != self.state.interrupts_enabled() {
+            self.state
+                .set_interrupts_enabled(self.interrupt_enable_next);
         }
 
         match current_instruction {
@@ -274,9 +288,9 @@ impl Cpu {
             }
             Instruction::Di => {
                 self.state.set_interrupts_enabled(false);
-                self.state.set_interrupts_enabled_next(false);
-            },
-            Instruction::Ei => self.state.set_interrupts_enabled_next(true),
+                self.interrupt_enable_next = false;
+            }
+            Instruction::Ei => self.interrupt_enable_next = true,
             // Prefixed
             Instruction::Rlc(r8)
             | Instruction::Rrc(r8)
@@ -311,6 +325,35 @@ impl Cpu {
         }
 
         self.state.set_instruction_pointer(next_instruction_address);
+
+        Ok(())
+    }
+
+    fn clear_requested_interrupt(&mut self, interrupt: Interrupt) {
+        self.bus_mut()
+            .io_mut()
+            .interrupts_mut()
+            .clear_requested_interrupt(interrupt);
+    }
+
+    fn detect_interrupt(&self) -> Option<Interrupt> {
+        self.bus()
+            .io()
+            .interrupts()
+            .highest_priority_triggered_interrupt()
+    }
+
+    fn call_interrupt_handler(&mut self, interrupt: Interrupt) -> Result<(), Error> {
+        let vector = match interrupt {
+            Interrupt::VBlank => 0x40,
+            Interrupt::Lcd => 0x48,
+            Interrupt::Timer => 0x50,
+            Interrupt::Serial => 0x58,
+            Interrupt::Joypad => 0x60,
+        };
+
+        self.push_u16(self.state.instruction_pointer())?;
+        self.state.set_instruction_pointer(vector);
 
         Ok(())
     }

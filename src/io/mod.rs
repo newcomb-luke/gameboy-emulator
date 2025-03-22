@@ -3,12 +3,14 @@ use interrupts::Interrupts;
 use joypad::JoypadInput;
 use lcd::Lcd;
 use serial::Serial;
+use timer::Timer;
 
 pub mod audio;
 pub mod interrupts;
+pub mod joypad;
 pub mod lcd;
 pub mod serial;
-pub mod joypad;
+pub mod timer;
 
 #[derive(Debug, Clone, Copy)]
 pub struct IORegister(u8);
@@ -18,10 +20,12 @@ impl IORegister {
         Self(0)
     }
 
+    #[inline(always)]
     pub fn write(&mut self, value: u8) {
         self.0 = value;
     }
 
+    #[inline(always)]
     pub fn read(&self) -> u8 {
         self.0
     }
@@ -30,9 +34,10 @@ impl IORegister {
 #[derive(Clone, Copy)]
 pub struct IO {
     joypad_input: JoypadInput,
+    lcd: Lcd,
     serial: Serial,
     audio: Audio,
-    lcd: Lcd,
+    timer: Timer,
     interrupts: Interrupts,
     boot_rom_enable: IORegister,
 }
@@ -41,9 +46,10 @@ impl IO {
     pub fn new() -> Self {
         Self {
             joypad_input: JoypadInput::new(),
+            lcd: Lcd::new(),
             serial: Serial::new(),
             audio: Audio::new(),
-            lcd: Lcd::new(),
+            timer: Timer::new(),
             interrupts: Interrupts::new(),
             boot_rom_enable: IORegister::new(),
         }
@@ -53,12 +59,36 @@ impl IO {
         self.boot_rom_enable.0
     }
 
+    pub fn interrupts(&self) -> &Interrupts {
+        &self.interrupts
+    }
+
+    pub fn interrupts_mut(&mut self) -> &mut Interrupts {
+        &mut self.interrupts
+    }
+
     pub fn lcd(&self) -> &Lcd {
         &self.lcd
     }
 
     pub fn lcd_mut(&mut self) -> &mut Lcd {
         &mut self.lcd
+    }
+
+    pub fn serial(&self) -> &Serial {
+        &self.serial
+    }
+
+    pub fn serial_mut(&mut self) -> &mut Serial {
+        &mut self.serial
+    }
+
+    pub fn timer(&self) -> &Timer {
+        &self.timer
+    }
+
+    pub fn timer_mut(&mut self) -> &mut Timer {
+        &mut self.timer
     }
 
     pub fn joypad(&self) -> &JoypadInput {
@@ -72,6 +102,10 @@ impl IO {
     pub fn read_u8(&self, address: u16) -> Result<u8, crate::cpu::error::Error> {
         Ok(match address {
             0xFF00 => self.joypad_input.read(),
+            0xFF04 => self.timer.read_divider(),
+            0xFF05 => self.timer.read_timer_counter(),
+            0xFF06 => self.timer.read_timer_modulo(),
+            0xFF07 => self.timer.read_timer_control(),
             0xFF40 => self.lcd.read_control(),
             0xFF41 => self.lcd.read_status(),
             0xFF42 => self.lcd.read_scroll_y(),
@@ -84,10 +118,10 @@ impl IO {
             0xFF4A => self.lcd.read_window_y(),
             0xFF4B => self.lcd.read_window_x(),
             0xFF50 => self.boot_rom_enable.read(),
-            0xFF0F => self.interrupts.read_interrupt_flag(),
-            0xFFFF => self.interrupts.read_interrupt_enable(),
+            // 0xFF0F => self.interrupts.read_interrupt_flag(),
+            // 0xFFFF => self.interrupts.read_interrupt_enable(),
             _ => {
-                return Err(crate::cpu::error::Error::MemoryFault(address));
+                return Err(crate::cpu::error::Error::MemoryReadFault(address));
             }
         })
     }
@@ -121,10 +155,10 @@ impl IO {
             0xFF4A => self.lcd.write_window_y(data),
             0xFF4B => self.lcd.write_window_x(data),
             0xFF50 => self.boot_rom_enable.write(data),
-            0xFF0F => self.interrupts.write_interrupt_flag(data),
-            0xFFFF => self.interrupts.write_interrupt_enable(data),
+            // 0xFF0F => self.interrupts.write_interrupt_flag(data),
+            // 0xFFFF => self.interrupts.write_interrupt_enable(data),
             _ => {
-                return Err(crate::cpu::error::Error::MemoryFault(address));
+                return Err(crate::cpu::error::Error::MemoryWriteFault(address, data));
             }
         }
 

@@ -5,6 +5,7 @@ use bus::Bus;
 use cartridge::Cartridge;
 use cpu::{error::Error, execution_state::ExecutionState, Cpu};
 use eframe::egui::Color32;
+use io::{interrupts::Interrupts, joypad::JoypadInput, timer::Timer};
 
 pub mod boot;
 pub mod bus;
@@ -14,20 +15,8 @@ pub mod io;
 pub mod memory;
 pub mod ppu;
 
-pub const DISPLAY_HEIGHT_PIXELS: usize = 144;
-pub const DISPLAY_WIDTH_PIXELS: usize = 160;
-pub const DISPLAY_SIZE_PIXELS: &'static [usize; 2] = &[DISPLAY_WIDTH_PIXELS, DISPLAY_HEIGHT_PIXELS];
-pub const TOTAL_PIXELS: usize = DISPLAY_HEIGHT_PIXELS * DISPLAY_WIDTH_PIXELS;
-
-pub const DARKEST_COLOR: Color32 = Color32::from_rgb(8, 24, 32);
-pub const DARKER_COLOR: Color32 = Color32::from_rgb(52, 104, 86);
-pub const LIGHTER_COLOR: Color32 = Color32::from_rgb(136, 192, 112);
-pub const LIGHTEST_COLOR: Color32 = Color32::from_rgb(224, 248, 208);
-pub const OFF_COLOR: Color32 = Color32::from_rgb(234, 255, 218);
-
 pub struct Emulator {
     cpu: Cpu,
-    empty_display: Box<[Color32; TOTAL_PIXELS]>,
     breakpoints: Vec<u16>,
 }
 
@@ -37,7 +26,6 @@ impl Emulator {
 
         Self {
             cpu: Cpu::new(bus),
-            empty_display: Self::off_display(),
             breakpoints: Vec::new(),
         }
     }
@@ -50,30 +38,43 @@ impl Emulator {
         self.cpu.execution_state()
     }
 
-    pub fn step(&mut self, input_state: InputState) -> Result<(), Error> {
-        self.cpu.bus_mut().io_mut().joypad_mut().set_inputs(input_state);
-        self.cpu.execute_one()
+    pub fn step(&mut self, input_state: InputState, cycles: usize) -> Result<(), Error> {
+        if self.joypad().step(input_state) {
+            self.interrupts()
+                .set_interrupt_requested(io::interrupts::Interrupt::Joypad);
+        }
+        if self.timer().step(cycles) {
+            self.interrupts()
+                .set_interrupt_requested(io::interrupts::Interrupt::Timer);
+        }
+
+        let (vblank, lcd) = self.cpu.bus_mut().step_ppu(cycles);
+
+        if let Some(vblank) = vblank {
+            self.interrupts().set_interrupt_requested(vblank);
+        }
+
+        if let Some(lcd) = lcd {
+            self.interrupts().set_interrupt_requested(lcd);
+        }
+
+        self.cpu.step()
+    }
+
+    fn timer(&mut self) -> &mut Timer {
+        self.cpu.bus_mut().io_mut().timer_mut()
+    }
+
+    fn joypad(&mut self) -> &mut JoypadInput {
+        self.cpu.bus_mut().io_mut().joypad_mut()
+    }
+
+    fn interrupts(&mut self) -> &mut Interrupts {
+        self.cpu.bus_mut().io_mut().interrupts_mut()
     }
 
     pub fn get_pixels(&mut self) -> &[Color32] {
-        let lcd = self.cpu.bus_mut().io_mut().lcd_mut();
-
-        lcd.write_lcd_y(0x90);
-
-        let screen_on = lcd.get_control().lcd_enabled();
-
-        // let lcd_y = lcd.read_lcd_y();
-        // if lcd_y >= 153 {
-        //     lcd.write_lcd_y(0);
-        // } else {
-        //     lcd.write_lcd_y(lcd_y + 1);
-        // }
-
-        if screen_on {
-            self.cpu.bus_mut().render()
-        } else {
-            self.empty_display.as_slice()
-        }
+        self.cpu.bus_mut().render()
     }
 
     pub fn breakpoint_reached(&self) -> Option<u16> {
@@ -86,10 +87,6 @@ impl Emulator {
         }
 
         None
-    }
-
-    fn off_display() -> Box<[Color32; TOTAL_PIXELS]> {
-        Box::new([OFF_COLOR; TOTAL_PIXELS])
     }
 }
 
@@ -114,7 +111,7 @@ pub struct DPadButtonState {
     pub up: bool,
     pub down: bool,
     pub left: bool,
-    pub right: bool
+    pub right: bool,
 }
 
 impl DPadButtonState {
@@ -123,7 +120,7 @@ impl DPadButtonState {
             up,
             down,
             left,
-            right
+            right,
         }
     }
 
@@ -160,7 +157,7 @@ pub enum DPadState {
     LeftUp,
     RightUp,
     LeftDown,
-    RightDown
+    RightDown,
 }
 
 impl DPadState {
@@ -169,7 +166,7 @@ impl DPadState {
             (true, true) => DPadState::None,
             (true, false) => DPadState::Left,
             (false, true) => DPadState::Right,
-            (false, false) => DPadState::None
+            (false, false) => DPadState::None,
         };
 
         let up_or_down = match (state.up, state.down) {
@@ -189,7 +186,7 @@ impl DPadState {
             (Self::Right, Self::Down) => Self::RightDown,
             (Self::None, Self::Up) => Self::Up,
             (Self::None, Self::Down) => Self::Down,
-            _ => panic!()
+            _ => panic!(),
         }
     }
 
@@ -216,7 +213,7 @@ pub struct InputState {
     pub b_pressed: bool,
     pub start_pressed: bool,
     pub select_pressed: bool,
-    pub dpad_state: DPadState
+    pub dpad_state: DPadState,
 }
 
 impl InputState {
@@ -226,7 +223,7 @@ impl InputState {
             b_pressed: false,
             start_pressed: false,
             select_pressed: false,
-            dpad_state: DPadState::None
+            dpad_state: DPadState::None,
         }
     }
 }

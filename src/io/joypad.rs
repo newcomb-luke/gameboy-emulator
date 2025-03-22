@@ -4,24 +4,48 @@ use crate::InputState;
 pub enum InputSelection {
     None,
     Buttons,
-    DPad
+    DPad,
+    Both,
 }
 
 #[derive(Clone, Copy)]
 pub struct JoypadInput {
     selection: InputSelection,
-    inputs: InputState
+    inputs: InputState,
+    previous_inputs: InputState,
 }
 
 impl JoypadInput {
     pub fn new() -> Self {
         Self {
             selection: InputSelection::None,
-            inputs: InputState::empty()
+            inputs: InputState::empty(),
+            previous_inputs: InputState::empty(),
         }
     }
 
-    pub fn set_inputs(&mut self, input_state: InputState) {
+    pub fn step(&mut self, input_state: InputState) -> bool {
+        self.update_inputs(input_state);
+        self.input_changed()
+    }
+
+    pub fn input_changed(&self) -> bool {
+        let before = self.read_state(self.previous_inputs);
+        let now = self.read_state(self.inputs);
+
+        for i in 0..8 {
+            let mask = 1 << i;
+
+            if ((before & mask) == 0) & ((now & mask) != 0) {
+                return true;
+            }
+        }
+
+        false
+    }
+
+    pub fn update_inputs(&mut self, input_state: InputState) {
+        self.previous_inputs = self.inputs;
         self.inputs = input_state;
     }
 
@@ -31,29 +55,39 @@ impl JoypadInput {
         self.selection = match masked {
             0 => InputSelection::None,
             1 => InputSelection::DPad,
-            _ => InputSelection::Buttons,
+            2 => InputSelection::Buttons,
+            _ => InputSelection::Both,
         };
     }
 
     pub fn read(&self) -> u8 {
-        let mut value = 0;
+        self.read_state(self.inputs)
+    }
 
+    fn read_state(&self, state: InputState) -> u8 {
         match self.selection {
-            InputSelection::Buttons => {
-                value |= (if self.inputs.dpad_state.is_down() { 0 } else { 1 }) << 3;
-                value |= (if self.inputs.dpad_state.is_up() { 0 } else { 1 }) << 2;
-                value |= (if self.inputs.dpad_state.is_left() { 0 } else { 1 }) << 1;
-                value |= (if self.inputs.dpad_state.is_right() { 0 } else { 1 }) << 0;
-            }
-            InputSelection::DPad => {
-                value |= (if self.inputs.start_pressed { 0 } else { 1 }) << 3;
-                value |= (if self.inputs.select_pressed { 0 } else { 1 }) << 2;
-                value |= (if self.inputs.b_pressed { 0 } else { 1 }) << 1;
-                value |= (if self.inputs.a_pressed { 0 } else { 1 }) << 0;
-            }
-            InputSelection::None => {}
+            InputSelection::Buttons => self.read_buttons(state),
+            InputSelection::DPad => self.read_dpad(state),
+            InputSelection::Both => self.read_buttons(state) & self.read_dpad(state),
+            InputSelection::None => 0,
         }
+    }
 
+    fn read_buttons(&self, state: InputState) -> u8 {
+        let mut value = 0;
+        value |= (if state.dpad_state.is_down() { 0 } else { 1 }) << 3;
+        value |= (if state.dpad_state.is_up() { 0 } else { 1 }) << 2;
+        value |= (if state.dpad_state.is_left() { 0 } else { 1 }) << 1;
+        value |= (if state.dpad_state.is_right() { 0 } else { 1 }) << 0;
+        value
+    }
+
+    fn read_dpad(&self, state: InputState) -> u8 {
+        let mut value = 0;
+        value |= (if state.start_pressed { 0 } else { 1 }) << 3;
+        value |= (if state.select_pressed { 0 } else { 1 }) << 2;
+        value |= (if state.b_pressed { 0 } else { 1 }) << 1;
+        value |= (if state.a_pressed { 0 } else { 1 }) << 0;
         value
     }
 }

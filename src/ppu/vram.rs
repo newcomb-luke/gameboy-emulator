@@ -136,7 +136,7 @@ impl Vram {
                 self.map1[(vram_addr - Self::TILE_MAP_OFFSET - Self::TILE_MAP_SIZE) as usize].0
             }
             _ => {
-                return Err(crate::cpu::error::Error::MemoryFault(address));
+                return Err(crate::cpu::error::Error::MemoryReadFault(address));
             }
         })
     }
@@ -159,7 +159,7 @@ impl Vram {
                     data;
             }
             _ => {
-                return Err(crate::cpu::error::Error::MemoryFault(address));
+                return Err(crate::cpu::error::Error::MemoryWriteFault(address, data));
             }
         }
 

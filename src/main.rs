@@ -5,7 +5,8 @@ use std::{path::PathBuf, time::Instant};
 use clap::Parser;
 use eframe::{
     egui::{
-        self, load::SizedTexture, text::LayoutJob, Color32, ColorImage, CornerRadius, FontId, Label, Margin, Pos2, Rect, Sense, Shadow, Shape, TextFormat, Ui, Vec2, Widget
+        self, load::SizedTexture, text::LayoutJob, Color32, ColorImage, CornerRadius, FontId,
+        Label, Margin, Pos2, Rect, Sense, Shadow, Shape, TextFormat, Ui, Vec2, Widget,
     },
     epaint::{
         text::{FontInsert, InsertFontFamily},
@@ -13,7 +14,9 @@ use eframe::{
     },
 };
 use gameboy_emulator::{
-    boot::DEFAULT_BOOT_ROM, read_boot_rom, read_cartridge, DPadButtonState, DPadState, Emulator, InputState, DISPLAY_SIZE_PIXELS, OFF_COLOR
+    boot::DEFAULT_BOOT_ROM,
+    ppu::{DISPLAY_SIZE_PIXELS, OFF_COLOR},
+    read_boot_rom, read_cartridge, DPadButtonState, DPadState, Emulator, InputState,
 };
 
 const GAMEBOY_HEIGHT: f32 = 148.0; // mm
@@ -71,9 +74,9 @@ fn main() -> eframe::Result {
 
     let cartridge = read_cartridge(&args.cartridge_rom_path);
 
-    let mut emulator = Emulator::new(boot_rom, cartridge);
+    let emulator = Emulator::new(boot_rom, cartridge);
 
-    emulator.add_breakpoint(0x0000);
+    // emulator.add_breakpoint(0x0000);
 
     let options = eframe::NativeOptions {
         viewport: egui::ViewportBuilder::default()
@@ -98,7 +101,7 @@ struct EmuApp {
     last_frame_time: Instant,
     breakpoint_reached: bool,
     input_state: InputState,
-    dpad: DPad
+    dpad: DPad,
 }
 
 impl eframe::App for EmuApp {
@@ -123,7 +126,8 @@ impl eframe::App for EmuApp {
             self.input_state.b_pressed = b_button;
             self.input_state.select_pressed = select_button;
             self.input_state.start_pressed = start_button;
-            self.dpad.keyboard_input_state = DPadButtonState::new(arrow_up, arrow_down, arrow_left, arrow_right);
+            self.dpad.keyboard_input_state =
+                DPadButtonState::new(arrow_up, arrow_down, arrow_left, arrow_right);
         });
 
         self.show_gameboy(ctx, self.breakpoint_reached, fps);
@@ -132,26 +136,25 @@ impl eframe::App for EmuApp {
 
         self.breakpoint_reached = false;
 
-        for i in 0..500 {
+        // 167_000 {
+        for _ in 0..167_000 {
             if let Some(_) = self.emulator.breakpoint_reached() {
                 self.breakpoint_reached = true;
                 break;
             } else {
-                self.emulator.step(self.input_state).unwrap();
-
-                if (i % 4) == 0 {
-                    let pixels = self.emulator.get_pixels();
-
-                    self.display_texture.set(
-                        egui::ColorImage {
-                            size: *DISPLAY_SIZE_PIXELS,
-                            pixels: pixels.to_vec(),
-                        },
-                        egui::TextureOptions::NEAREST,
-                    );
-                }
+                self.emulator.step(self.input_state, 1).unwrap();
             }
         }
+
+        let pixels = self.emulator.get_pixels();
+
+        self.display_texture.set(
+            egui::ColorImage {
+                size: *DISPLAY_SIZE_PIXELS,
+                pixels: pixels.to_vec(),
+            },
+            egui::TextureOptions::NEAREST,
+        );
 
         ctx.request_repaint();
 
@@ -186,7 +189,7 @@ impl EmuApp {
             last_frame_time: Instant::now(),
             breakpoint_reached: false,
             input_state: InputState::empty(),
-            dpad: DPad::new()
+            dpad: DPad::new(),
         }
     }
 
@@ -260,11 +263,15 @@ impl EmuApp {
             self.input_state.b_pressed = b_clicked;
         }
 
-        const START_POS: Pos2 = Pos2::new(SCALED_GAMEBOY_WIDTH * 0.62, SCALED_GAMEBOY_HEIGHT * 0.83);
-        const SELECT_POS: Pos2 = Pos2::new(SCALED_GAMEBOY_WIDTH * 0.42, SCALED_GAMEBOY_HEIGHT * 0.83);
+        const START_POS: Pos2 =
+            Pos2::new(SCALED_GAMEBOY_WIDTH * 0.62, SCALED_GAMEBOY_HEIGHT * 0.83);
+        const SELECT_POS: Pos2 =
+            Pos2::new(SCALED_GAMEBOY_WIDTH * 0.42, SCALED_GAMEBOY_HEIGHT * 0.83);
 
-        let start_clicked = self.show_start_button(ui, "START", START_POS, self.input_state.start_pressed);
-        let select_clicked = self.show_start_button(ui, "SELECT", SELECT_POS, self.input_state.select_pressed);
+        let start_clicked =
+            self.show_start_button(ui, "START", START_POS, self.input_state.start_pressed);
+        let select_clicked =
+            self.show_start_button(ui, "SELECT", SELECT_POS, self.input_state.select_pressed);
 
         if !self.input_state.start_pressed {
             self.input_state.start_pressed = start_clicked;
@@ -279,11 +286,22 @@ impl EmuApp {
         self.show_dpad(ui, DPAD_POS);
     }
 
-    fn show_ab_button(&mut self, ui: &mut Ui, text: &str, pos: Pos2, activation_override: bool) -> bool {
+    fn show_ab_button(
+        &mut self,
+        ui: &mut Ui,
+        text: &str,
+        pos: Pos2,
+        activation_override: bool,
+    ) -> bool {
         let font_id = FontId::new(24.0, egui::FontFamily::Name("Corporate".into()));
         const BUTTON_SIZE: Vec2 = Vec2::new(SCALED_BUTTON_DIAMETER, SCALED_BUTTON_DIAMETER);
 
-        let clicked = ui.put(Rect::from_center_size(pos, BUTTON_SIZE), ABButton::new(activation_override)).dragged();
+        let clicked = ui
+            .put(
+                Rect::from_center_size(pos, BUTTON_SIZE),
+                ABButton::new(activation_override),
+            )
+            .dragged();
 
         let text_pos = Pos2::new(pos.x, pos.y + 50.0);
 
@@ -297,19 +315,24 @@ impl EmuApp {
         clicked
     }
 
-    fn show_start_button(&mut self, ui: &mut Ui, text: &str, pos: Pos2, activation_override: bool) -> bool {
+    fn show_start_button(
+        &mut self,
+        ui: &mut Ui,
+        text: &str,
+        pos: Pos2,
+        activation_override: bool,
+    ) -> bool {
         const BUTTON_SIZE: Vec2 = Vec2::new(SCALED_BUTTON_DIAMETER, SCALED_BUTTON_DIAMETER * 0.3);
 
-        let clicked = ui.put(
-            Rect::from_center_size(pos, BUTTON_SIZE),
-            StartButton::new(activation_override),
-        ).dragged();
+        let clicked = ui
+            .put(
+                Rect::from_center_size(pos, BUTTON_SIZE),
+                StartButton::new(activation_override),
+            )
+            .dragged();
 
         let text_pos = Pos2::new(pos.x, pos.y + 30.0);
-        let text_center = Rect::from_center_size(
-            text_pos,
-            BUTTON_SIZE * 2.0,
-        );
+        let text_center = Rect::from_center_size(text_pos, BUTTON_SIZE * 2.0);
 
         let mut button = LayoutJob::default();
         let font_id = FontId::new(24.0, egui::FontFamily::Name("Corporate".into()));
@@ -323,22 +346,17 @@ impl EmuApp {
     fn show_dpad(&mut self, ui: &mut Ui, pos: Pos2) {
         const DPAD_SIZE: Vec2 = Vec2::new(SCALED_DPAD_WIDTH, SCALED_DPAD_WIDTH);
 
-        ui.put(
-            Rect::from_center_size(pos, DPAD_SIZE),
-            &mut self.dpad
-        );
+        ui.put(Rect::from_center_size(pos, DPAD_SIZE), &mut self.dpad);
     }
 }
 
 struct ABButton {
-    activated: bool
+    activated: bool,
 }
 
 impl ABButton {
     fn new(activated: bool) -> Self {
-        Self {
-            activated
-        }
+        Self { activated }
     }
 }
 
@@ -376,14 +394,12 @@ impl Widget for ABButton {
 }
 
 struct StartButton {
-    activated: bool
+    activated: bool,
 }
 
 impl StartButton {
     fn new(activated: bool) -> Self {
-        Self {
-            activated
-        }
+        Self { activated }
     }
 }
 
@@ -422,14 +438,14 @@ impl Widget for StartButton {
 
 struct DPad {
     keyboard_input_state: DPadButtonState,
-    state: DPadState
+    state: DPadState,
 }
 
 impl DPad {
     fn new() -> Self {
         Self {
             keyboard_input_state: DPadButtonState::empty(),
-            state: DPadState::None
+            state: DPadState::None,
         }
     }
 }
@@ -439,9 +455,13 @@ impl Widget for &mut DPad {
         let outer_rect_bounds = ui.available_rect_before_wrap();
         let overall_response = ui.allocate_rect(outer_rect_bounds, Sense::drag());
 
-        let (left_rect, rest) = outer_rect_bounds.scale_from_center2(Vec2::new(1.0, 0.3)).split_left_right_at_fraction(0.4);
+        let (left_rect, rest) = outer_rect_bounds
+            .scale_from_center2(Vec2::new(1.0, 0.3))
+            .split_left_right_at_fraction(0.4);
         let (center_rect, right_rect) = rest.split_left_right_at_fraction(1.0 / 3.0);
-        let (top_rect, rest) = outer_rect_bounds.scale_from_center2(Vec2::new(0.3, 1.0)).split_top_bottom_at_fraction(0.4);
+        let (top_rect, rest) = outer_rect_bounds
+            .scale_from_center2(Vec2::new(0.3, 1.0))
+            .split_top_bottom_at_fraction(0.4);
         let (_, bottom_rect) = rest.split_top_bottom_at_fraction(1.0 / 3.0);
 
         let left_response = ui.allocate_rect(left_rect, Sense::drag());
@@ -461,12 +481,22 @@ impl Widget for &mut DPad {
         let bottom_left_corner = ui.allocate_rect(bottom_left, Sense::drag());
         let bottom_right_corner = ui.allocate_rect(bottom_right, Sense::drag());
 
-        let left_activated = top_left_corner.dragged() | bottom_left_corner.dragged() | left_response.dragged();
-        let right_activated = top_right_corner.dragged() | bottom_right_corner.dragged() | right_response.dragged();
-        let top_activated = top_left_corner.dragged() | top_right_corner.dragged() | top_response.dragged();
-        let bottom_activated = bottom_left_corner.dragged() | bottom_right_corner.dragged() | bottom_response.dragged();
+        let left_activated =
+            top_left_corner.dragged() | bottom_left_corner.dragged() | left_response.dragged();
+        let right_activated =
+            top_right_corner.dragged() | bottom_right_corner.dragged() | right_response.dragged();
+        let top_activated =
+            top_left_corner.dragged() | top_right_corner.dragged() | top_response.dragged();
+        let bottom_activated = bottom_left_corner.dragged()
+            | bottom_right_corner.dragged()
+            | bottom_response.dragged();
 
-        let ui_state = DPadButtonState::new(top_activated, bottom_activated, left_activated, right_activated);
+        let ui_state = DPadButtonState::new(
+            top_activated,
+            bottom_activated,
+            left_activated,
+            right_activated,
+        );
         let overall_state = self.keyboard_input_state | ui_state;
 
         let dpad_state = DPadState::from_buttons(overall_state);
@@ -475,13 +505,27 @@ impl Widget for &mut DPad {
         let mut shadows = Vec::new();
         let mut buttons = Vec::new();
 
-        let center = Shape::from(RectShape::filled(center_rect, CornerRadius::ZERO, DPAD_BUTTON_COLOR));
+        let center = Shape::from(RectShape::filled(
+            center_rect,
+            CornerRadius::ZERO,
+            DPAD_BUTTON_COLOR,
+        ));
         buttons.push(center);
 
         self.paint_button(left_rect, &mut buttons, &mut shadows, dpad_state.is_left());
-        self.paint_button(right_rect, &mut buttons, &mut shadows, dpad_state.is_right());
+        self.paint_button(
+            right_rect,
+            &mut buttons,
+            &mut shadows,
+            dpad_state.is_right(),
+        );
         self.paint_button(top_rect, &mut buttons, &mut shadows, dpad_state.is_up());
-        self.paint_button(bottom_rect, &mut buttons, &mut shadows, dpad_state.is_down());
+        self.paint_button(
+            bottom_rect,
+            &mut buttons,
+            &mut shadows,
+            dpad_state.is_down(),
+        );
 
         if ui.is_rect_visible(outer_rect_bounds) {
             let shadows = Shape::Vec(shadows);
@@ -495,7 +539,13 @@ impl Widget for &mut DPad {
 }
 
 impl DPad {
-    fn paint_button(&mut self, rect: Rect, buttons: &mut Vec<Shape>, shadows: &mut Vec<Shape>, activation_override: bool) {
+    fn paint_button(
+        &mut self,
+        rect: Rect,
+        buttons: &mut Vec<Shape>,
+        shadows: &mut Vec<Shape>,
+        activation_override: bool,
+    ) {
         let corner_radius = CornerRadius::same(2);
 
         let fill_color = if activation_override {
