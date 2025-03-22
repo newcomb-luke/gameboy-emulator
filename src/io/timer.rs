@@ -95,6 +95,8 @@ impl Timer {
             todo!()
         }
 
+        self.divider.write(self.divider.read().wrapping_add((cycles & 0xFF) as u8));
+
         false
     }
 }

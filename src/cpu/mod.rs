@@ -138,7 +138,10 @@ impl Cpu {
                     next_instruction_address = dest;
                 }
             }
-            Instruction::Stop => todo!(),
+            Instruction::Stop => {
+                self.bus_mut().io_mut().timer_mut().set_divider(0);
+                todo!()
+            },
             Instruction::LdReg8Reg8(dest, src) => {
                 let val = self.get_r8(src)?;
                 self.update_r8(dest, val)?;
