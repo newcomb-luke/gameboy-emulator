@@ -116,7 +116,7 @@ Both keyboard and click inputs are functional.
     - [ ] Echo RAM
     - [x] OAM RAM
     - [x] HRAM
-    - [ ] Interrupt Enable Register
+    - [x] Interrupt Enable Register
 - [ ] GUI
     - [x] Window
     - [x] Device outline
@@ -139,13 +139,14 @@ Both keyboard and click inputs are functional.
 - [ ] I/O Registers
     - [x]  Joypad Input
     - [x]  Serial transfer
-    - [ ]  Timer and Divider
-    - [ ]  Interrupts
-    - [ ]  Audio
+    - [x]  Timer and Divider
+    - [x]  Interrupts
+    - [x]  Audio
     - [ ]  Wave Pattern
     - [x]  LCD / Display
     - [ ]  ~~VRAM Bank Select~~ (CGB)
     - [x]  Boot ROM Enable
+    - [x]  OAM DMA
     - [ ]  ~~VRAM DMA~~ (CGB)
     - [ ]  ~~LCD Color Palettes~~ (CGB)
     - [ ]  ~~WRAM Bank Select~~ (CGB)
