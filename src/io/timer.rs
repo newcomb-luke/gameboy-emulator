@@ -8,6 +8,17 @@ pub enum ClockSelect {
     Every64MCycles,
 }
 
+impl ClockSelect {
+    pub fn cycles_value(&self) -> usize {
+        match self {
+            Self::Every256MCycles => 256,
+            Self::Every4MCycles => 4,
+            Self::Every16MCycles => 16,
+            Self::Every64MCycles => 64,
+        }
+    }
+}
+
 #[derive(Clone, Copy)]
 pub struct TimerControl {
     enable: bool,
@@ -29,6 +40,7 @@ pub struct Timer {
     timer_counter: IORegister,
     timer_modulo: IORegister,
     timer_control: TimerControl,
+    cycles: usize,
 }
 
 impl Timer {
@@ -38,6 +50,7 @@ impl Timer {
             timer_counter: IORegister::new(),
             timer_modulo: IORegister::new(),
             timer_control: TimerControl::new(),
+            cycles: 0,
         }
     }
 
@@ -91,12 +104,30 @@ impl Timer {
     }
 
     pub fn step(&mut self, cycles: usize) -> bool {
-        if self.timer_control.enable {
-            todo!()
+        self.divider
+            .write(self.divider.read().wrapping_add((cycles & 0xFF) as u8));
+
+        if !self.timer_control.enable {
+            return false;
         }
 
-        self.divider.write(self.divider.read().wrapping_add((cycles & 0xFF) as u8));
+        self.cycles += cycles;
 
-        false
+        let current_cycles_value = self.timer_control.clock_select.cycles_value();
+
+        let counter_increments = (self.cycles / current_cycles_value) as u8;
+        self.cycles = self.cycles % current_cycles_value;
+
+        let (_, overflowed) = self
+            .timer_counter
+            .read()
+            .overflowing_add(counter_increments);
+
+        if overflowed {
+            // Reset the timer counter to the value in timer modulo
+            self.timer_counter.write(self.timer_modulo.read());
+        }
+
+        overflowed
     }
 }

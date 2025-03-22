@@ -136,13 +136,14 @@ impl eframe::App for EmuApp {
 
         self.breakpoint_reached = false;
 
-        // 167_000 {
-        for _ in 0..167_000 {
+        let mut cycles_done = 0;
+
+        while cycles_done < 167_000 {
             if let Some(_) = self.emulator.breakpoint_reached() {
                 self.breakpoint_reached = true;
                 break;
             } else {
-                self.emulator.step(self.input_state, 1).unwrap();
+                cycles_done += self.emulator.step(self.input_state).unwrap();
             }
         }
 

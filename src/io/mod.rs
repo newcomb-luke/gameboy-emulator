@@ -1,4 +1,5 @@
 use audio::Audio;
+use dma::DMAController;
 use interrupts::Interrupts;
 use joypad::JoypadInput;
 use lcd::Lcd;
@@ -6,6 +7,7 @@ use serial::Serial;
 use timer::Timer;
 
 pub mod audio;
+pub mod dma;
 pub mod interrupts;
 pub mod joypad;
 pub mod lcd;
@@ -39,6 +41,7 @@ pub struct IO {
     audio: Audio,
     timer: Timer,
     interrupts: Interrupts,
+    dma: DMAController,
     boot_rom_enable: IORegister,
 }
 
@@ -51,6 +54,7 @@ impl IO {
             audio: Audio::new(),
             timer: Timer::new(),
             interrupts: Interrupts::new(),
+            dma: DMAController::new(),
             boot_rom_enable: IORegister::new(),
         }
     }
@@ -65,6 +69,14 @@ impl IO {
 
     pub fn interrupts_mut(&mut self) -> &mut Interrupts {
         &mut self.interrupts
+    }
+
+    pub fn dma(&self) -> &DMAController {
+        &self.dma
+    }
+
+    pub fn dma_mut(&mut self) -> &mut DMAController {
+        &mut self.dma
     }
 
     pub fn lcd(&self) -> &Lcd {
@@ -112,6 +124,7 @@ impl IO {
             0xFF43 => self.lcd.read_scroll_x(),
             0xFF44 => self.lcd.read_lcd_y(),
             0xFF45 => self.lcd.read_lcd_y_compare(),
+            0xFF46 => self.dma.read_source_address(),
             0xFF47 => self.lcd.read_background_palette(),
             0xFF48 => self.lcd.read_obj_palette_0(),
             0xFF49 => self.lcd.read_obj_palette_1(),
@@ -149,14 +162,15 @@ impl IO {
             0xFF43 => self.lcd.write_scroll_x(data),
             0xFF44 => {} // Writing is not enabled for LCD Y register
             0xFF45 => self.lcd.write_lcd_y_compare(data),
+            0xFF46 => self.dma.start_new_transfer(data),
             0xFF47 => self.lcd.write_background_palette(data),
             0xFF48 => self.lcd.write_obj_palette_0(data),
             0xFF49 => self.lcd.write_obj_palette_1(data),
             0xFF4A => self.lcd.write_window_y(data),
             0xFF4B => self.lcd.write_window_x(data),
             0xFF50 => self.boot_rom_enable.write(data),
-            // 0xFF0F => self.interrupts.write_interrupt_flag(data),
-            // 0xFFFF => self.interrupts.write_interrupt_enable(data),
+            0xFF0F => self.interrupts.write_interrupt_flag(data),
+            0xFFFF => self.interrupts.write_interrupt_enable(data),
             _ => {
                 return Err(crate::cpu::error::Error::MemoryWriteFault(address, data));
             }

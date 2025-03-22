@@ -5,7 +5,10 @@ use instruction::{
     Condition, Instruction, Register16, Register16Memory, Register16Stack, Register8,
 };
 
-use crate::{bus::Bus, io::interrupts::Interrupt};
+use crate::{
+    bus::Bus,
+    io::{dma::DMA_TRANSFER_CYCLES_LENGTH, interrupts::Interrupt},
+};
 
 pub mod alu;
 pub mod decoder;
@@ -34,7 +37,7 @@ impl Cpu {
         &self.state
     }
 
-    pub fn step(&mut self) -> Result<(), Error> {
+    pub fn step(&mut self) -> Result<usize, Error> {
         if self.state.interrupts_enabled() {
             if let Some(interrupt) = self.detect_interrupt() {
                 // Clear the bit in the IF register
@@ -51,10 +54,12 @@ impl Cpu {
             .state
             .instruction_pointer()
             .wrapping_add(current_instruction.length());
+        let mut cycles = current_instruction.base_num_cycles();
 
-        if self.interrupt_enable_next != self.state.interrupts_enabled() {
+        if self.interrupt_enable_next & self.interrupt_enable_next != self.state.interrupts_enabled() {
             self.state
-                .set_interrupts_enabled(self.interrupt_enable_next);
+                .set_interrupts_enabled(true);
+            self.interrupt_enable_next = false;
         }
 
         match current_instruction {
@@ -136,12 +141,13 @@ impl Cpu {
 
                 if self.is_condition_met(cond) {
                     next_instruction_address = dest;
+                    cycles += 1;
                 }
             }
             Instruction::Stop => {
                 self.bus_mut().io_mut().timer_mut().set_divider(0);
                 todo!()
-            },
+            }
             Instruction::LdReg8Reg8(dest, src) => {
                 let val = self.get_r8(src)?;
                 self.update_r8(dest, val)?;
@@ -206,6 +212,7 @@ impl Cpu {
             Instruction::RetCond(cond) => {
                 if self.is_condition_met(cond) {
                     next_instruction_address = self.pop_u16()?;
+                    cycles += 3;
                 }
             }
             Instruction::Ret => {
@@ -218,6 +225,7 @@ impl Cpu {
             Instruction::JpCond(cond, imm16) => {
                 if self.is_condition_met(cond) {
                     next_instruction_address = imm16.into();
+                    cycles += 1;
                 }
             }
             Instruction::JpImm(imm16) => {
@@ -230,6 +238,7 @@ impl Cpu {
                 if self.is_condition_met(cond) {
                     self.push_u16(next_instruction_address)?;
                     next_instruction_address = imm16.into();
+                    cycles += 3;
                 }
             }
             Instruction::CallImm(imm16) => {
@@ -329,7 +338,31 @@ impl Cpu {
 
         self.state.set_instruction_pointer(next_instruction_address);
 
+        if self.step_dma(1) {
+            self.do_dma_transfer()?;
+        }
+
+        Ok(cycles)
+    }
+
+    fn do_dma_transfer(&mut self) -> Result<(), Error> {
+        let source_address = self.bus().io().dma().full_source_address();
+
+        // Do the entire DMA transfer all at once, for simplicity
+        // The number of cycles is also the number of bytes
+        for i in 0..DMA_TRANSFER_CYCLES_LENGTH {
+            let source_addr = source_address + i;
+            let dest_addr = 0xFE00 + i;
+
+            let byte = self.bus.read_u8(source_addr)?;
+            self.bus.write_u8(dest_addr, byte)?;
+        }
+
         Ok(())
+    }
+
+    fn step_dma(&mut self, cycles: usize) -> bool {
+        self.bus.io_mut().dma_mut().step(cycles)
     }
 
     fn clear_requested_interrupt(&mut self, interrupt: Interrupt) {

@@ -8,7 +8,7 @@ pub enum Instruction {
     LdMemA(Register16Memory),
     /// ld a, [r16mem]
     LdAMem(Register16Memory),
-    /// ld [imm8], sp
+    /// ld [imm16], sp
     LdImm16Sp(Imm16),
     /// inc r16
     Inc16(Register16),
@@ -229,6 +229,120 @@ impl Instruction {
             Self::Bit(_, _) => 2,
             Self::Res(_, _) => 2,
             Self::Set(_, _) => 2,
+        }
+    }
+
+    pub fn base_num_cycles(&self) -> usize {
+        match self {
+            Self::Nop => 1,
+            Self::LdReg16(_, _) => 3,
+            Self::LdMemA(_) => 2,
+            Self::LdAMem(_) => 2,
+            Self::LdImm16Sp(_) => 5,
+            Self::Inc16(_) => 2,
+            Self::Dec16(_) => 2,
+            Self::AddHl(_) => 2,
+            Self::Inc8(r8) | Self::Dec8(r8) => {
+                if *r8 == Register8::HlIndirect {
+                    3
+                } else {
+                    1
+                }
+            }
+            Self::LdReg8Imm(r8, _) => {
+                if *r8 == Register8::HlIndirect {
+                    3
+                } else {
+                    2
+                }
+            }
+            Self::Rlca => 1,
+            Self::Rrca => 1,
+            Self::Rla => 1,
+            Self::Rra => 1,
+            Self::Daa => 1,
+            Self::Cpl => 1,
+            Self::Scf => 1,
+            Self::Ccf => 1,
+            Self::JrImm(_) => 3,
+            Self::JrCond(_, _) => 2,
+            Self::Stop => 1,
+            Self::LdReg8Reg8(r8d, r8s) => {
+                if (*r8d == Register8::HlIndirect) | (*r8s == Register8::HlIndirect) {
+                    2
+                } else {
+                    1
+                }
+            }
+            Self::Halt => 1,
+            Self::AddReg8(r8)
+            | Self::AdcReg8(r8)
+            | Self::SubReg8(r8)
+            | Self::SbcReg8(r8)
+            | Self::AndReg8(r8)
+            | Self::XorReg8(r8)
+            | Self::OrReg8(r8)
+            | Self::CpReg8(r8) => {
+                if *r8 == Register8::HlIndirect {
+                    2
+                } else {
+                    1
+                }
+            }
+            Self::AddImm8(_) => 2,
+            Self::AdcImm8(_) => 2,
+            Self::SubImm8(_) => 2,
+            Self::SbcImm8(_) => 2,
+            Self::AndImm8(_) => 2,
+            Self::XorImm8(_) => 2,
+            Self::OrImm8(_) => 2,
+            Self::CpImm8(_) => 2,
+            Self::RetCond(_) => 2,
+            Self::Ret => 4,
+            Self::Reti => 4,
+            Self::JpCond(_, _) => 3,
+            Self::JpImm(_) => 4,
+            Self::JpHl => 1,
+            Self::CallCond(_, _) => 3,
+            Self::CallImm(_) => 6,
+            Self::Rst(_) => 4,
+            Self::Pop(_) => 3,
+            Self::Push(_) => 4,
+            Self::LdhMemA => 2,
+            Self::LdhImmA(_) => 3,
+            Self::LdImmA(_) => 4,
+            Self::LdhAMem => 2,
+            Self::LdhAImm(_) => 3,
+            Self::LdAImm(_) => 4,
+            Self::AddSp(_) => 4,
+            Self::LdHlSpImm8(_) => 3,
+            Self::LdSpHl => 2,
+            Self::Di => 1,
+            Self::Ei => 1,
+            // 0xCB-Prefixed
+            Self::Bit(_, r8) => {
+                if *r8 == Register8::HlIndirect {
+                    3
+                } else {
+                    2
+                }
+            }
+            Self::Rlc(r8)
+            | Self::Rrc(r8)
+            | Self::Rl(r8)
+            | Self::Rr(r8)
+            | Self::Sla(r8)
+            | Self::Sra(r8)
+            | Self::Srl(r8)
+            | Self::Swap(r8)
+            | Self::Res(_, r8)
+            | Self::Set(_, r8) => {
+                if *r8 == Register8::HlIndirect {
+                    4
+                } else {
+                    2
+                }
+            }
         }
     }
 }

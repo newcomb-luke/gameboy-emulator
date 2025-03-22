@@ -54,7 +54,7 @@ pub struct Ppu {
     pixel_buffer: Box<[Color32; TOTAL_PIXELS]>,
     off_display: Box<[Color32; TOTAL_PIXELS]>,
     current_cycles: usize,
-    current_scanline: usize
+    current_scanline: usize,
 }
 
 impl Ppu {
@@ -65,7 +65,7 @@ impl Ppu {
             pixel_buffer: Self::empty_pixel_buffer(),
             off_display: Self::off_display(),
             current_cycles: 0,
-            current_scanline: 0
+            current_scanline: 0,
         }
     }
 
@@ -121,7 +121,7 @@ impl Ppu {
                     if status.mode_0_interrupt_select() {
                         lcd_interrupt = true;
                     }
-                },
+                }
                 PpuMode::VBlank => {
                     vblank_interrupt = true;
 
@@ -152,7 +152,10 @@ impl Ppu {
             }
         }
 
-        (vblank_interrupt.then_some(Interrupt::VBlank), lcd_interrupt.then_some(Interrupt::Lcd))
+        (
+            vblank_interrupt.then_some(Interrupt::VBlank),
+            lcd_interrupt.then_some(Interrupt::Lcd),
+        )
     }
 
     fn write_scanline(&mut self, lcd: &mut Lcd) {

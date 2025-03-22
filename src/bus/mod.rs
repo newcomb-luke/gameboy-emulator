@@ -68,6 +68,7 @@ impl Bus {
             0xFE00..=0xFE9F => self.ppu.oam_mut().write_u8(address, data),
             0xFF00..=0xFF7F => self.io.write_u8(address, data)?,
             0xFF80..=0xFFFE => self.high_ram.write_u8(address, data),
+            0xFFFF => self.io.write_u8(address, data)?,
             _ => {
                 return Err(Error::MemoryWriteFault(address, data));
             }

@@ -38,7 +38,9 @@ impl Emulator {
         self.cpu.execution_state()
     }
 
-    pub fn step(&mut self, input_state: InputState, cycles: usize) -> Result<(), Error> {
+    pub fn step(&mut self, input_state: InputState) -> Result<usize, Error> {
+        let cycles = self.cpu.step()?;
+
         if self.joypad().step(input_state) {
             self.interrupts()
                 .set_interrupt_requested(io::interrupts::Interrupt::Joypad);
@@ -58,7 +60,7 @@ impl Emulator {
             self.interrupts().set_interrupt_requested(lcd);
         }
 
-        self.cpu.step()
+        Ok(cycles)
     }
 
     fn timer(&mut self) -> &mut Timer {

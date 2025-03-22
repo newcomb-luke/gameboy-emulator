@@ -21,7 +21,7 @@ impl Decoder {
         let ip = state.instruction_pointer();
         let opcode_byte = bus.read_u8(state.instruction_pointer())?;
 
-        let opcode = Opcode::try_from(opcode_byte)?;
+        let opcode = Opcode::try_from(opcode_byte).map_err(|_| Error::InvalidInstruction(ip))?;
 
         let instruction = match opcode {
             Opcode::Nop => Instruction::Nop,
@@ -174,7 +174,7 @@ impl Decoder {
             }
             Opcode::Prefix => {
                 let prefixed_byte = bus.read_u8(ip + 1)?;
-                let prefixed = Prefixed::try_from(prefixed_byte)?;
+                let prefixed = Prefixed::try_from(prefixed_byte).map_err(|_| Error::InvalidInstruction(ip))?;
 
                 match prefixed {
                     Prefixed::Rlc
@@ -419,7 +419,7 @@ pub enum Prefixed {
 }
 
 impl TryFrom<u8> for Opcode {
-    type Error = Error;
+    type Error = ();
 
     fn try_from(value: u8) -> Result<Self, Self::Error> {
         Ok(if value == 0 {
@@ -547,13 +547,13 @@ impl TryFrom<u8> for Opcode {
         } else if value == 0b1111_1011 {
             Opcode::Ei
         } else {
-            return Err(Error::InvalidInstruction);
+            return Err(());
         })
     }
 }
 
 impl TryFrom<u8> for Prefixed {
-    type Error = Error;
+    type Error = ();
 
     fn try_from(value: u8) -> Result<Self, Self::Error> {
         Ok(if value & 0b1111_1000 == 0b0000_0000 {
@@ -579,7 +579,7 @@ impl TryFrom<u8> for Prefixed {
         } else if value & 0b1100_0000 == 0b1100_0000 {
             Prefixed::Set
         } else {
-            return Err(Error::InvalidInstruction);
+            return Err(());
         })
     }
 }
