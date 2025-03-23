@@ -128,14 +128,29 @@ Both keyboard and click inputs are functional.
     - [x] Reading tiles from VRAM
     - [x] Placing tiles based on tile map
     - [x] Display background
+    - [x] Background palette
+    - [x] Background enable flag
+    - [x] Background tile map select
+    - [x] Background tile data select
     - [ ] Display window
-    - [x] Scroll movement
-    - [ ] Window movement
-    - [ ] VRAM addressing modes
-    - [ ] Read palette data
+    - [ ] Window enable flag
+    - [ ] Window tile map select
+    - [ ] Window internal line counter
+    - [ ] Window Y movement
+    - [ ] Window X movement
+    - [x] Scroll Y movement
+    - [x] Scroll X movement
     - [x] Display tile
     - [ ] Read object attributes
     - [ ] Display objects
+    - [ ] Object palette
+    - [ ] Object horizontal flip
+    - [ ] Object vertical flip
+    - [ ] Object to background priority
+    - [ ] Object enable flag
+    - [ ] Object size support
+    - [ ] Object priority
+    - [ ] 10 objects per line draw limit
 - [ ] I/O Registers
     - [x]  Joypad Input
     - [x]  Serial transfer

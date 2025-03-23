@@ -1,3 +1,5 @@
+use crate::io::lcd::TileDataArea;
+
 #[derive(Debug, Clone, Copy)]
 pub enum ColorId {
     Zero,
@@ -109,8 +111,24 @@ impl Vram {
         }
     }
 
-    pub fn get_tile(&self, id: TileId) -> &Tile {
-        &self.tiles[id.0 as usize]
+    pub fn get_tile(&self, data_mode: TileDataArea, id: TileId) -> &Tile {
+        let idx = id.0 as usize;
+
+        match data_mode {
+            TileDataArea::Lower => {
+                match idx {
+                    0..=127 => {
+                        &self.tiles[256 + idx]
+                    }
+                    _ => {
+                        &self.tiles[128 + (idx - 128)]
+                    }
+                }
+            },
+            TileDataArea::Upper => {
+                &self.tiles[idx]
+            }
+        }
     }
 
     pub fn get_map_0(&self) -> &[TileId; 1024] {

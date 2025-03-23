@@ -2,7 +2,7 @@ use eframe::egui::Color32;
 use oam::ObjectAttributeMemory;
 use vram::{ColorId, Vram};
 
-use crate::io::{interrupts::Interrupt, lcd::Lcd};
+use crate::io::{interrupts::Interrupt, lcd::{Color, Lcd, Palette, TileMapArea}};
 
 pub mod oam;
 pub mod vram;
@@ -20,7 +20,7 @@ pub const OFF_COLOR: Color32 = Color32::from_rgb(234, 255, 218);
 
 pub const SCANLINE_DOTS_LENGTH: usize = 456;
 pub const SCANLINE_CYCLES_LENGTH: usize = SCANLINE_DOTS_LENGTH / 4;
-pub const SCANLINES_PER_FRAME: usize = 156;
+pub const SCANLINES_PER_FRAME: usize = 154;
 pub const FRAME_CYCLES_LENGTH: usize = SCANLINES_PER_FRAME * SCANLINE_CYCLES_LENGTH;
 pub const VBLANK_START_SCANLINE: usize = 144;
 
@@ -85,9 +85,9 @@ impl Ppu {
         &mut self.oam
     }
 
-    pub fn step(&mut self, lcd: &mut Lcd, cycles: usize) -> (Option<Interrupt>, Option<Interrupt>) {
+    pub fn step(&mut self, lcd: &mut Lcd, cycles: usize) -> (Option<Interrupt>, Option<Interrupt>, bool) {
         if !lcd.control().lcd_enabled() {
-            return (None, None);
+            return (None, None, false);
         }
 
         self.current_cycles += cycles;
@@ -140,21 +140,26 @@ impl Ppu {
             status.set_ppu_mode(new_mode);
         }
 
-        if lcd.status().lyc_interrupt_select() & lcd.status().lyc_equals_ly() {
-            lcd_interrupt = true;
-        }
+        let mut new_frame = false;
 
         if self.current_scanline != scanline {
+            if lcd.status().lyc_interrupt_select() & lcd.status().lyc_equals_ly() {
+                lcd_interrupt = true;
+            }
+
             self.current_scanline = scanline;
 
             if new_mode != PpuMode::VBlank {
                 self.write_scanline(lcd);
+            } else {
+                new_frame = old_mode != PpuMode::VBlank;
             }
         }
 
         (
             vblank_interrupt.then_some(Interrupt::VBlank),
             lcd_interrupt.then_some(Interrupt::Lcd),
+            new_frame
         )
     }
 
@@ -167,19 +172,31 @@ impl Ppu {
         let right = scroll_x.wrapping_add(159);
         let left = right.wrapping_sub(160);
 
-        let map0 = self.vram.get_map_0();
+        let map = match lcd.control().bg_tile_map_area() {
+            TileMapArea::Lower => {
+                self.vram.get_map_0()
+            },
+            TileMapArea::Upper => {
+                self.vram.get_map_1()
+            }
+        };
+
+        let bg_palette = lcd.background_palette();
+        let data_mode = lcd.control().bg_and_window_tile_data_area();
 
         let y = self.current_scanline;
-        let view_y = (top as usize) + y;
+
+        let view_y = ((top as usize) + y) % 256;
+
+        let bg_enabled = lcd.control().bg_and_window_enabled();
 
         for x in 0..DISPLAY_WIDTH_PIXELS {
-            let view_x = (left as usize) + x;
+            let view_x = ((left as usize) + x) % 256;
 
-            let mut tile_location = ((view_y / 8) * 32) + (view_x / 8);
-            tile_location = tile_location % 1024;
+            let tile_location = ((view_y / 8) * 32) + (view_x / 8);
 
-            let tile_id = map0[tile_location];
-            let tile = self.vram.get_tile(tile_id);
+            let tile_id = map[tile_location];
+            let tile = self.vram.get_tile(data_mode, tile_id);
             let color_ids = tile.color_data();
 
             let tile_y = view_y % 8;
@@ -187,7 +204,12 @@ impl Ppu {
 
             let pixel_index = (y * DISPLAY_WIDTH_PIXELS) + x;
             let color_id = color_ids[tile_y][tile_x];
-            self.pixel_buffer[pixel_index] = self.color_id_to_color(color_id);
+
+            if bg_enabled {
+                self.pixel_buffer[pixel_index] = self.bg_color_id_to_color(bg_palette, color_id);
+            } else {
+                self.pixel_buffer[pixel_index] = self.bg_color_id_to_color(bg_palette, ColorId::Zero);
+            }
         }
     }
 
@@ -199,17 +221,26 @@ impl Ppu {
         &self.pixel_buffer
     }
 
-    fn color_id_to_color(&self, color_id: ColorId) -> Color32 {
+    fn bg_color_id_to_color(&self, bg_palette: Palette, color_id: ColorId) -> Color32 {
         match color_id {
-            ColorId::Zero => LIGHTEST_COLOR,
-            ColorId::One => LIGHTER_COLOR,
-            ColorId::Two => DARKER_COLOR,
-            ColorId::Three => DARKEST_COLOR,
+            ColorId::Zero => self.color_to_color32(bg_palette.id0),
+            ColorId::One => self.color_to_color32(bg_palette.id1),
+            ColorId::Two => self.color_to_color32(bg_palette.id2),
+            ColorId::Three => self.color_to_color32(bg_palette.id3),
+        }
+    }
+
+    fn color_to_color32(&self, color: Color) -> Color32 {
+        match color {
+            Color::White => LIGHTEST_COLOR,
+            Color::LightGray => LIGHTER_COLOR,
+            Color::DarkGray => DARKER_COLOR,
+            Color::Black => DARKEST_COLOR
         }
     }
 
     fn empty_pixel_buffer() -> Box<[Color32; TOTAL_PIXELS]> {
-        Box::new([LIGHTER_COLOR; TOTAL_PIXELS])
+        Box::new([LIGHTEST_COLOR; TOTAL_PIXELS])
     }
 
     fn off_display() -> Box<[Color32; TOTAL_PIXELS]> {

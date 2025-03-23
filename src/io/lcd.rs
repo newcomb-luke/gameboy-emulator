@@ -79,6 +79,82 @@ impl From<u8> for ObjSize {
 }
 
 #[derive(Debug, Clone, Copy)]
+pub struct Palette {
+    pub id0: Color,
+    pub id1: Color,
+    pub id2: Color,
+    pub id3: Color,
+}
+
+impl From<u8> for Palette {
+    fn from(value: u8) -> Self {
+        let id0 = Color::from(value & 0b11);
+        let id1 = Color::from((value >> 2) & 0b11);
+        let id2 = Color::from((value >> 4) & 0b11);
+        let id3 = Color::from((value >> 6) & 0b11);
+
+        Self {
+            id0,
+            id1,
+            id2,
+            id3
+        }
+    }
+}
+
+impl From<Palette> for u8 {
+    fn from(value: Palette) -> Self {
+        let mut v = 0;
+        v |= u8::from(value.id0);
+        v |= u8::from(value.id1) << 2;
+        v |= u8::from(value.id2) << 4;
+        v |= u8::from(value.id3) << 6;
+        v
+    }
+}
+
+impl Default for Palette {
+    fn default() -> Self {
+        Self {
+            id0: Color::White,
+            id1: Color::LightGray,
+            id2: Color::DarkGray,
+            id3: Color::Black
+        }
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Color {
+    White,
+    LightGray,
+    DarkGray,
+    Black
+}
+
+impl From<u8> for Color {
+    fn from(value: u8) -> Self {
+        match value {
+            0 => Self::White,
+            1 => Self::LightGray,
+            2 => Self::DarkGray,
+            _ => Self::Black
+        }
+    }
+}
+
+impl From<Color> for u8 {
+    fn from(value: Color) -> Self {
+        match value {
+            Color::White => 0,
+            Color::LightGray => 1,
+            Color::DarkGray => 2,
+            Color::Black => 3
+        }
+    }
+}
+
+#[derive(Debug, Clone, Copy)]
 pub struct LcdStatus {
     lyc_interrupt_select: bool,
     mode_2_interrupt_select: bool,
@@ -267,7 +343,7 @@ pub struct Lcd {
     scroll_x: IORegister,
     window_y: IORegister,
     window_x: IORegister,
-    background_palette: IORegister,
+    background_palette: Palette,
     obj_palette_0: IORegister,
     obj_palette_1: IORegister,
 }
@@ -283,7 +359,7 @@ impl Lcd {
             scroll_x: IORegister::new(),
             window_y: IORegister::new(),
             window_x: IORegister::new(),
-            background_palette: IORegister::new(),
+            background_palette: Palette::default(),
             obj_palette_0: IORegister::new(),
             obj_palette_1: IORegister::new(),
         }
@@ -374,12 +450,16 @@ impl Lcd {
         self.window_x.write(value);
     }
 
+    pub fn background_palette(&self) -> Palette {
+        self.background_palette
+    }
+
     pub fn read_background_palette(&self) -> u8 {
-        self.background_palette.read()
+        self.background_palette.into()
     }
 
     pub fn write_background_palette(&mut self, value: u8) {
-        self.background_palette.write(value);
+        self.background_palette = Palette::from(value);
     }
 
     pub fn read_obj_palette_0(&self) -> u8 {

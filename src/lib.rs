@@ -38,7 +38,7 @@ impl Emulator {
         self.cpu.execution_state()
     }
 
-    pub fn step(&mut self, input_state: InputState) -> Result<usize, Error> {
+    pub fn step(&mut self, input_state: InputState) -> Result<(usize, bool), Error> {
         let cycles = self.cpu.step()?;
 
         if self.joypad().step(input_state) {
@@ -50,7 +50,7 @@ impl Emulator {
                 .set_interrupt_requested(io::interrupts::Interrupt::Timer);
         }
 
-        let (vblank, lcd) = self.cpu.bus_mut().step_ppu(cycles);
+        let (vblank, lcd,new_frame) = self.cpu.bus_mut().step_ppu(cycles);
 
         if let Some(vblank) = vblank {
             self.interrupts().set_interrupt_requested(vblank);
@@ -60,7 +60,7 @@ impl Emulator {
             self.interrupts().set_interrupt_requested(lcd);
         }
 
-        Ok(cycles)
+        Ok((cycles, new_frame))
     }
 
     fn timer(&mut self) -> &mut Timer {

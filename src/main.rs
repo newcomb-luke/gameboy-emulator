@@ -138,24 +138,33 @@ impl eframe::App for EmuApp {
 
         let mut cycles_done = 0;
 
-        while cycles_done < 167_000 {
+        let cycles_per_frame = if self.emulator.execution_state().instruction_pointer() > 0x100 {
+            167_000
+        } else {
+            167_000
+        };
+
+        while cycles_done < cycles_per_frame {
             if let Some(_) = self.emulator.breakpoint_reached() {
                 self.breakpoint_reached = true;
                 break;
             } else {
-                cycles_done += self.emulator.step(self.input_state).unwrap();
+                let (cycles, new_frame) = self.emulator.step(self.input_state).unwrap();
+                cycles_done += cycles;
+
+                if new_frame {
+                    let pixels = self.emulator.get_pixels();
+
+                    self.display_texture.set(
+                        egui::ColorImage {
+                            size: *DISPLAY_SIZE_PIXELS,
+                            pixels: pixels.to_vec(),
+                        },
+                        egui::TextureOptions::NEAREST,
+                    );
+                }
             }
         }
-
-        let pixels = self.emulator.get_pixels();
-
-        self.display_texture.set(
-            egui::ColorImage {
-                size: *DISPLAY_SIZE_PIXELS,
-                pixels: pixels.to_vec(),
-            },
-            egui::TextureOptions::NEAREST,
-        );
 
         ctx.request_repaint();
 

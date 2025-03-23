@@ -84,7 +84,7 @@ impl Bus {
         self.io.boot_rom_enable() == 0
     }
 
-    pub fn step_ppu(&mut self, cycles: usize) -> (Option<Interrupt>, Option<Interrupt>) {
+    pub fn step_ppu(&mut self, cycles: usize) -> (Option<Interrupt>, Option<Interrupt>, bool) {
         self.ppu.step(self.io.lcd_mut(), cycles)
     }
 

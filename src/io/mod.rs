@@ -131,8 +131,8 @@ impl IO {
             0xFF4A => self.lcd.read_window_y(),
             0xFF4B => self.lcd.read_window_x(),
             0xFF50 => self.boot_rom_enable.read(),
-            // 0xFF0F => self.interrupts.read_interrupt_flag(),
-            // 0xFFFF => self.interrupts.read_interrupt_enable(),
+            0xFF0F => self.interrupts.read_interrupt_flag(),
+            0xFFFF => self.interrupts.read_interrupt_enable(),
             _ => {
                 return Err(crate::cpu::error::Error::MemoryReadFault(address));
             }
@@ -142,6 +142,10 @@ impl IO {
     pub fn write_u8(&mut self, address: u16, data: u8) -> Result<(), crate::cpu::error::Error> {
         match address {
             0xFF00 => self.joypad_input.write(data),
+            0xFF04 => self.timer.write_divider(data),
+            0xFF05 => self.timer.write_timer_counter(data),
+            0xFF06 => self.timer.write_timer_modulo(data),
+            0xFF07 => self.timer.write_timer_control(data),
             0xFF10 => self.audio.channel_1_mut().write_sweep(data),
             0xFF11 => self
                 .audio

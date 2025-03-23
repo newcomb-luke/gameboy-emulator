@@ -38,8 +38,12 @@ impl Cpu {
     }
 
     pub fn step(&mut self) -> Result<usize, Error> {
+        let mut cycles = 0;
+
         if self.state.interrupts_enabled() {
             if let Some(interrupt) = self.detect_interrupt() {
+                // Wait
+                cycles += 5;
                 // Clear the bit in the IF register
                 self.clear_requested_interrupt(interrupt);
                 // Disable interrupts
@@ -54,7 +58,7 @@ impl Cpu {
             .state
             .instruction_pointer()
             .wrapping_add(current_instruction.length());
-        let mut cycles = current_instruction.base_num_cycles();
+        cycles += current_instruction.base_num_cycles();
 
         if self.interrupt_enable_next & self.interrupt_enable_next != self.state.interrupts_enabled() {
             self.state
@@ -338,7 +342,7 @@ impl Cpu {
 
         self.state.set_instruction_pointer(next_instruction_address);
 
-        if self.step_dma(1) {
+        if self.step_dma(cycles) {
             self.do_dma_transfer()?;
         }
 
