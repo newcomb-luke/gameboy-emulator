@@ -107,14 +107,14 @@ Both keyboard and click inputs are functional. It can fully execute the dmg-acid
     - [x] 01 - Special
     - [ ] 02 - Interrupts
     - [ ] 03 - op sp, hl
-    - [ ] 04 - op r, imm
+    - [x] 04 - op r, imm
     - [ ] 05 - op rp
-    - [ ] 06 - ld r, r
+    - [x] 06 - ld r, r
     - [ ] 07 - jr, jp, call, ret, rst
-    - [ ] 08 - Misc Instructions
+    - [x] 08 - Misc Instructions
     - [ ] 09 - op r, r
-    - [ ] 10 - Bit Ops
-    - [ ] 11 - op a, (hl)
+    - [x] 10 - Bit Ops
+    - [x] 11 - op a, (hl)
 - [ ] Memory Map
     - [x] Boot ROM
     - [x] Cartrige ROM Bank 0

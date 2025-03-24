@@ -243,11 +243,15 @@ impl Cpu {
         result
     }
 
-    pub fn swap_u8(&self, v: u8) -> u8 {
+    pub fn swap_u8(&mut self, v: u8) -> u8 {
         let hi = (v & 0b1111_0000) >> 4;
         let lo = (v & 0b0000_1111) << 4;
 
-        hi | lo
+        let result = hi | lo;
+
+        self.state.set_flags(Flags::new(false, false, false, result == 0));
+
+        result
     }
 
     pub fn shift_left_arithmetic(&mut self, v: u8) -> u8 {

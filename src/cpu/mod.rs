@@ -20,6 +20,7 @@ pub struct Cpu {
     state: ExecutionState,
     bus: Bus,
     decoder: Decoder,
+    after_ei: bool,
     interrupt_enable_next: bool,
     halted: bool,
     breakpoints_enabled: bool,
@@ -32,6 +33,7 @@ impl Cpu {
             state: ExecutionState::new(),
             bus,
             decoder: Decoder::new(),
+            after_ei: false,
             interrupt_enable_next: false,
             halted: false,
             breakpoints_enabled: enable_breakpoints,
@@ -49,6 +51,19 @@ impl Cpu {
 
     pub fn step(&mut self) -> Result<usize, Error> {
         let mut cycles = 0;
+
+        if self.interrupt_enable_next {
+            self.state.set_interrupts_enabled(true);
+            println!("Got here too");
+            self.interrupt_enable_next = false;
+        }
+
+        if self.after_ei {
+            println!("Got here");
+            self.state.set_interrupts_enabled(true);
+            // self.interrupt_enable_next = true;
+            self.after_ei = false;
+        }
 
         if self.halted {
             if self.detect_interrupt().is_some() {
@@ -77,13 +92,6 @@ impl Cpu {
             .instruction_pointer()
             .wrapping_add(current_instruction.length());
         cycles += current_instruction.base_num_cycles();
-
-        if self.interrupt_enable_next & self.interrupt_enable_next
-            != self.state.interrupts_enabled()
-        {
-            self.state.set_interrupts_enabled(true);
-            self.interrupt_enable_next = false;
-        }
 
         match current_instruction {
             Instruction::Nop => {}
@@ -331,8 +339,11 @@ impl Cpu {
             Instruction::Di => {
                 self.state.set_interrupts_enabled(false);
                 self.interrupt_enable_next = false;
+                self.after_ei = false;
             }
-            Instruction::Ei => self.interrupt_enable_next = true,
+            Instruction::Ei => {
+                self.after_ei = true;
+            },
             // Prefixed
             Instruction::Rlc(r8)
             | Instruction::Rrc(r8)
