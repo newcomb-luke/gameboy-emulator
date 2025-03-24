@@ -110,9 +110,9 @@ Both keyboard and click inputs are functional. It can fully execute the dmg-acid
     - [x] 04 - op r, imm
     - [ ] 05 - op rp
     - [x] 06 - ld r, r
-    - [ ] 07 - jr, jp, call, ret, rst
+    - [x] 07 - jr, jp, call, ret, rst
     - [x] 08 - Misc Instructions
-    - [ ] 09 - op r, r
+    - [x] 09 - op r, r
     - [x] 10 - Bit Ops
     - [x] 11 - op a, (hl)
 - [ ] Memory Map

@@ -306,7 +306,7 @@ impl Decoder {
 
     fn read_tgt(&self, opcode_byte: u8) -> Target {
         let value = (opcode_byte >> 3) & 0b111;
-        Target::from(value)
+        Target::from(value * 8)
     }
 
     fn read_cond(&self, opcode_byte: u8) -> Condition {
