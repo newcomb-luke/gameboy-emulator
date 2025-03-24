@@ -93,12 +93,7 @@ impl From<u8> for Palette {
         let id2 = Color::from((value >> 4) & 0b11);
         let id3 = Color::from((value >> 6) & 0b11);
 
-        Self {
-            id0,
-            id1,
-            id2,
-            id3
-        }
+        Self { id0, id1, id2, id3 }
     }
 }
 
@@ -119,7 +114,7 @@ impl Default for Palette {
             id0: Color::White,
             id1: Color::LightGray,
             id2: Color::DarkGray,
-            id3: Color::Black
+            id3: Color::Black,
         }
     }
 }
@@ -129,7 +124,7 @@ pub enum Color {
     White,
     LightGray,
     DarkGray,
-    Black
+    Black,
 }
 
 impl From<u8> for Color {
@@ -138,7 +133,7 @@ impl From<u8> for Color {
             0 => Self::White,
             1 => Self::LightGray,
             2 => Self::DarkGray,
-            _ => Self::Black
+            _ => Self::Black,
         }
     }
 }
@@ -149,7 +144,7 @@ impl From<Color> for u8 {
             Color::White => 0,
             Color::LightGray => 1,
             Color::DarkGray => 2,
-            Color::Black => 3
+            Color::Black => 3,
         }
     }
 }

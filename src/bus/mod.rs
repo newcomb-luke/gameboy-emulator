@@ -68,7 +68,7 @@ impl Bus {
             0x8000..=0x9FFF => self.ppu.vram_mut().write_u8(address, data)?,
             0xC000..=0xDFFF => self.work_ram.write_u8(address, data),
             0xFE00..=0xFE9F => self.ppu.oam_mut().write_u8(address, data),
-            0xFEA0..=0xFEFF => {}, // Unusable, but some games have bugs that read/write it
+            0xFEA0..=0xFEFF => {} // Unusable, but some games have bugs that read/write it
             0xFF00..=0xFF7E => self.io.write_u8(address, data)?,
             0xFF7F => {} // Tetris writes to this on accident
             0xFF80..=0xFFFE => self.high_ram.write_u8(address, data),

@@ -174,7 +174,8 @@ impl Decoder {
             }
             Opcode::Prefix => {
                 let prefixed_byte = bus.read_u8(ip + 1)?;
-                let prefixed = Prefixed::try_from(prefixed_byte).map_err(|_| Error::InvalidInstruction(ip))?;
+                let prefixed =
+                    Prefixed::try_from(prefixed_byte).map_err(|_| Error::InvalidInstruction(ip))?;
 
                 match prefixed {
                     Prefixed::Rlc

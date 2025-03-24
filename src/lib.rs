@@ -50,7 +50,7 @@ impl Emulator {
                 .set_interrupt_requested(io::interrupts::Interrupt::Timer);
         }
 
-        let (vblank, lcd,new_frame) = self.cpu.bus_mut().step_ppu(cycles);
+        let (vblank, lcd, new_frame) = self.cpu.bus_mut().step_ppu(cycles);
 
         if let Some(vblank) = vblank {
             self.interrupts().set_interrupt_requested(vblank);

@@ -121,23 +121,14 @@ impl IO {
             0xFF06 => self.timer.read_timer_modulo(),
             0xFF07 => self.timer.read_timer_control(),
             0xFF10 => self.audio.channel_1().read_sweep(),
-            0xFF11 => self
-                .audio
-                .channel_1()
-                .read_length_timer_and_duty_cycle(),
+            0xFF11 => self.audio.channel_1().read_length_timer_and_duty_cycle(),
             0xFF12 => self.audio.channel_1().read_volume_and_envelope(),
             0xFF13 => self.audio.channel_1().read_period_low(),
             0xFF14 => self.audio.channel_1().read_period_high_and_control(),
-            0xFF16 => self
-                .audio
-                .channel_2()
-                .read_length_timer_and_duty_cycle(),
+            0xFF16 => self.audio.channel_2().read_length_timer_and_duty_cycle(),
             0xFF17 => self.audio.channel_2().read_volume_and_envelope(),
             0xFF18 => self.audio.channel_2().read_period_low(),
-            0xFF19 => self
-                .audio
-                .channel_2()
-                .read_period_high_and_control(),
+            0xFF19 => self.audio.channel_2().read_period_high_and_control(),
             0xFF1A => self.audio.channel_3().read_dac_enable(),
             0xFF1B => self.audio.channel_3().read_length_timer(),
             0xFF1C => self.audio.channel_3().read_output_level(),
@@ -191,7 +182,10 @@ impl IO {
                 .write_length_timer_and_duty_cycle(data),
             0xFF12 => self.audio.channel_1_mut().write_volume_and_envelope(data),
             0xFF13 => self.audio.channel_1_mut().write_period_low(data),
-            0xFF14 => self.audio.channel_1_mut().write_period_high_and_control(data),
+            0xFF14 => self
+                .audio
+                .channel_1_mut()
+                .write_period_high_and_control(data),
             0xFF16 => self
                 .audio
                 .channel_2_mut()
@@ -206,14 +200,22 @@ impl IO {
             0xFF1B => self.audio.channel_3_mut().write_length_timer(data),
             0xFF1C => self.audio.channel_3_mut().write_output_level(data),
             0xFF1D => self.audio.channel_3_mut().write_period_low(data),
-            0xFF1E => self.audio.channel_3_mut().write_period_high_and_control(data),
+            0xFF1E => self
+                .audio
+                .channel_3_mut()
+                .write_period_high_and_control(data),
             0xFF20 => self.audio.channel_4_mut().write_length_timer(data),
             0xFF21 => self.audio.channel_4_mut().write_volume_and_envelope(data),
-            0xFF22 => self.audio.channel_4_mut().write_frequency_and_randomness(data),
+            0xFF22 => self
+                .audio
+                .channel_4_mut()
+                .write_frequency_and_randomness(data),
             0xFF23 => self.audio.channel_4_mut().write_control(data),
             0xFF30..=0xFF3F => {
                 let index = address - 0xFF30;
-                self.audio.channel_3_mut().write_wave_pattern_ram(index, data);
+                self.audio
+                    .channel_3_mut()
+                    .write_wave_pattern_ram(index, data);
             }
             0xFF24 => self.audio.write_master_volume_vin_panning(data),
             0xFF25 => self.audio.write_sound_panning(data),

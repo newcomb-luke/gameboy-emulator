@@ -119,7 +119,7 @@ pub struct AudioChannel3 {
     output_level: IORegister,
     period_low: IORegister,
     period_high_and_control: IORegister,
-    wave_pattern_ram: [u8; 16]
+    wave_pattern_ram: [u8; 16],
 }
 
 impl AudioChannel3 {
@@ -130,12 +130,16 @@ impl AudioChannel3 {
             output_level: IORegister::new(),
             period_low: IORegister::new(),
             period_high_and_control: IORegister::new(),
-            wave_pattern_ram: [0u8; 16]
+            wave_pattern_ram: [0u8; 16],
         }
     }
 
     pub fn read_dac_enable(&self) -> u8 {
-        if self.dac_enable { 1 << 7 } else { 0 }
+        if self.dac_enable {
+            1 << 7
+        } else {
+            0
+        }
     }
 
     pub fn write_dac_enable(&mut self, value: u8) {
@@ -200,7 +204,6 @@ impl AudioChannel4 {
             control: IORegister::new(),
         }
     }
-
 
     pub fn read_length_timer(&self) -> u8 {
         0

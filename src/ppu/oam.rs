@@ -47,7 +47,11 @@ impl From<u8> for Flags {
             priority: ((value >> 7) & 1) != 0,
             y_flip: ((value >> 6) & 1) != 0,
             x_flip: ((value >> 5) & 1) != 0,
-            palette: if (value >> 4) == 0 { PaletteSelection::Pallete0 } else { PaletteSelection::Pallete1 },
+            palette: if ((value >> 4) & 1) == 0 {
+                PaletteSelection::Pallete0
+            } else {
+                PaletteSelection::Pallete1
+            },
         }
     }
 }
@@ -58,7 +62,11 @@ impl From<&Flags> for u8 {
         v |= if value.priority { 1 << 7 } else { 0 };
         v |= if value.y_flip { 1 << 6 } else { 0 };
         v |= if value.x_flip { 1 << 5 } else { 0 };
-        v |= if value.palette == PaletteSelection::Pallete0 { 0 } else { 1 << 4 };
+        v |= if value.palette == PaletteSelection::Pallete0 {
+            0
+        } else {
+            1 << 4
+        };
         v
     }
 }

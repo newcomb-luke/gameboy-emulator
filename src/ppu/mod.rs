@@ -1,8 +1,11 @@
 use eframe::egui::Color32;
-use oam::{ObjectAttributeMemory, PaletteSelection};
+use oam::{ObjectAttributeMemory, ObjectAttributes, PaletteSelection};
 use vram::{ColorId, Vram};
 
-use crate::io::{interrupts::Interrupt, lcd::{Color, Lcd, Palette, TileMapArea}};
+use crate::io::{
+    interrupts::Interrupt,
+    lcd::{Color, Lcd, ObjSize, Palette, TileMapArea},
+};
 
 pub mod oam;
 pub mod vram;
@@ -87,7 +90,11 @@ impl Ppu {
         &mut self.oam
     }
 
-    pub fn step(&mut self, lcd: &mut Lcd, cycles: usize) -> (Option<Interrupt>, Option<Interrupt>, bool) {
+    pub fn step(
+        &mut self,
+        lcd: &mut Lcd,
+        cycles: usize,
+    ) -> (Option<Interrupt>, Option<Interrupt>, bool) {
         if !lcd.control().lcd_enabled() {
             return (None, None, false);
         }
@@ -154,7 +161,7 @@ impl Ppu {
             }
 
             self.current_scanline = scanline;
-            
+
             if new_mode == PpuMode::VBlank {
                 new_frame = old_mode != PpuMode::VBlank;
             }
@@ -163,7 +170,7 @@ impl Ppu {
         (
             vblank_interrupt.then_some(Interrupt::VBlank),
             lcd_interrupt.then_some(Interrupt::Lcd),
-            new_frame
+            new_frame,
         )
     }
 
@@ -177,17 +184,11 @@ impl Ppu {
         let left = right.wrapping_sub(159);
 
         let map = match lcd.control().bg_tile_map_area() {
-            TileMapArea::Lower => {
-                self.vram.get_map_0()
-            },
-            TileMapArea::Upper => {
-                self.vram.get_map_1()
-            }
+            TileMapArea::Lower => self.vram.get_map_0(),
+            TileMapArea::Upper => self.vram.get_map_1(),
         };
 
         let bg_palette = lcd.background_palette();
-        let obj_palette_0 = lcd.obj_palette_0();
-        let obj_palette_1 = lcd.obj_palette_1();
         let data_mode = lcd.control().bg_and_window_tile_data_area();
 
         let y = self.current_scanline;
@@ -221,6 +222,11 @@ impl Ppu {
             }
         }
 
+        let obj_size = lcd.control().obj_size();
+        let height = match obj_size {
+            ObjSize::Single => 8,
+            ObjSize::Double => 16,
+        };
         let mut line_objects = Vec::new();
 
         if lcd.control().obj_enabled() {
@@ -231,49 +237,104 @@ impl Ppu {
 
                 let obj_y = (obj.y_pos() - 16) as usize;
 
-                if (y >= obj_y) & (y < (obj_y + 8)) {
-                    line_objects.push(obj);
+                if (y >= obj_y) & (y < (obj_y + height)) {
+                    line_objects.push(*obj);
                 }
             }
         }
 
         line_objects.sort_by(|a, b| a.x_pos().cmp(&b.x_pos()));
 
-        for obj in line_objects.iter().take(10) {
-            let obj_y = (obj.y_pos() - 16) as usize;
-            let obj_x = (obj.x_pos() - 8) as usize;
-            let tile = self.vram.get_tile(crate::io::lcd::TileDataArea::Upper, obj.tile_index());
-            let color_ids = tile.color_data();
-            let obj_palette = match obj.attributes().palette() {
-                PaletteSelection::Pallete0 => obj_palette_0,
-                PaletteSelection::Pallete1 => obj_palette_1,
-            };
-            let bg_priority= obj.attributes().priority();
-
-            for x in 0..8 {
-                for y in 0..8 {
-                    let screen_x = obj_x + x;
-                    let screen_y = obj_y + y;
-
-                    let x = if obj.attributes().x_flip() {
-                        7 - x
-                    } else {
-                        x
-                    };
-
-                    let y = if obj.attributes().y_flip() {
-                        7 - y
-                    } else {
-                        y
-                    };
-
-                    let color_id = color_ids[y][x];
-                    let pixel_index = (screen_y * DISPLAY_WIDTH_PIXELS) + screen_x;
-
-                    if (!bg_priority | !self.bg_priority[pixel_index]) & (color_id != ColorId::Zero) {
-                        self.pixel_buffer[pixel_index] = self.color_id_to_color(obj_palette, color_id);
-                    }
+        match obj_size {
+            ObjSize::Single => {
+                for obj in line_objects.iter().take(10).rev() {
+                    self.draw_object_8(lcd, *obj, y);
                 }
+            }
+            ObjSize::Double => {
+                for obj in line_objects.iter().take(10).rev() {
+                    self.draw_object_16(lcd, *obj, y);
+                }
+            }
+        }
+    }
+
+    fn draw_object_8(&mut self, lcd: &mut Lcd, obj: ObjectAttributes, y: usize) {
+        let obj_palette_0 = lcd.obj_palette_0();
+        let obj_palette_1 = lcd.obj_palette_1();
+
+        let obj_y = (obj.y_pos() - 16) as usize;
+        let obj_x = (obj.x_pos() - 8) as usize;
+        let tile = self.vram.get_tile_upper(obj.tile_index());
+        let color_ids = tile.color_data();
+        let obj_palette = match obj.attributes().palette() {
+            PaletteSelection::Pallete0 => obj_palette_0,
+            PaletteSelection::Pallete1 => obj_palette_1,
+        };
+        let bg_priority = obj.attributes().priority();
+
+        let screen_y = y;
+        let y = y - obj_y;
+
+        for x in 0..8 {
+            let screen_x = obj_x + x;
+
+            let x = if obj.attributes().x_flip() { 7 - x } else { x };
+
+            let y = if obj.attributes().y_flip() { 7 - y } else { y };
+
+            let color_id = color_ids[y][x];
+            let pixel_index = (screen_y * DISPLAY_WIDTH_PIXELS) + screen_x;
+
+            if !(bg_priority & self.bg_priority[pixel_index]) & (color_id != ColorId::Zero) {
+                self.pixel_buffer[pixel_index] = self.color_id_to_color(obj_palette, color_id);
+            }
+        }
+    }
+
+    fn draw_object_16(&mut self, lcd: &mut Lcd, obj: ObjectAttributes, y: usize) {
+        let obj_palette_0 = lcd.obj_palette_0();
+        let obj_palette_1 = lcd.obj_palette_1();
+
+        let obj_y = (obj.y_pos() - 16) as usize;
+        let obj_x = (obj.x_pos() - 8) as usize;
+        let (top_id, bottom_id) = obj.tile_index().as_double();
+        let top = self.vram.get_tile_upper(top_id);
+        let bottom = self.vram.get_tile_upper(bottom_id);
+        let top_color_ids = top.color_data();
+        let bottom_color_ids = bottom.color_data();
+        let obj_palette = match obj.attributes().palette() {
+            PaletteSelection::Pallete0 => obj_palette_0,
+            PaletteSelection::Pallete1 => obj_palette_1,
+        };
+        let bg_priority = obj.attributes().priority();
+
+        let screen_y = y;
+        let y = y - obj_y;
+
+        let y = if obj.attributes().y_flip() {
+            15 - y
+        } else {
+            y
+        };
+
+        let color_ids = if y < 8{
+            top_color_ids[y]
+        } else {
+            bottom_color_ids[y % 8]
+        };
+
+        for x in 0..8 {
+            let screen_x = obj_x + x;
+
+            let x = if obj.attributes().x_flip() { 7 - x } else { x };
+
+            let color_id = color_ids[x];
+
+            let pixel_index = (screen_y * DISPLAY_WIDTH_PIXELS) + screen_x;
+
+            if !(bg_priority & self.bg_priority[pixel_index]) & (color_id != ColorId::Zero) {
+                self.pixel_buffer[pixel_index] = self.color_id_to_color(obj_palette, color_id);
             }
         }
     }
@@ -300,7 +361,7 @@ impl Ppu {
             Color::White => LIGHTEST_COLOR,
             Color::LightGray => LIGHTER_COLOR,
             Color::DarkGray => DARKER_COLOR,
-            Color::Black => DARKEST_COLOR
+            Color::Black => DARKEST_COLOR,
         }
     }
 

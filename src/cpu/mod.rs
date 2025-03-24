@@ -60,9 +60,10 @@ impl Cpu {
             .wrapping_add(current_instruction.length());
         cycles += current_instruction.base_num_cycles();
 
-        if self.interrupt_enable_next & self.interrupt_enable_next != self.state.interrupts_enabled() {
-            self.state
-                .set_interrupts_enabled(true);
+        if self.interrupt_enable_next & self.interrupt_enable_next
+            != self.state.interrupts_enabled()
+        {
+            self.state.set_interrupts_enabled(true);
             self.interrupt_enable_next = false;
         }
 

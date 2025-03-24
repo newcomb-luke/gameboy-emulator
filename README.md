@@ -148,16 +148,16 @@ Both keyboard and click inputs are functional.
     - [x] Object vertical flip
     - [x] Object to background priority
     - [x] Object enable flag
-    - [ ] Object size support
-    - [ ] Object order priority
+    - [x] Object size support
+    - [x] Object order priority
     - [x] 10 objects per line draw limit
-- [ ] I/O Registers
+- [x] I/O Registers
     - [x]  Joypad Input
     - [x]  Serial transfer
     - [x]  Timer and Divider
     - [x]  Interrupts
     - [x]  Audio
-    - [ ]  Wave Pattern
+    - [x]  Wave Pattern
     - [x]  LCD / Display
     - [ ]  ~~VRAM Bank Select~~ (CGB)
     - [x]  Boot ROM Enable

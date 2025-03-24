@@ -73,6 +73,13 @@ impl TileId {
     pub fn zeroed() -> Self {
         Self(0)
     }
+
+    pub fn as_double(&self) -> (TileId, TileId) {
+        let top = self.0 & 0xFE;
+        let bottom = top + 1;
+
+        (TileId::from(top), TileId::from(bottom))
+    }
 }
 
 impl From<u8> for TileId {
@@ -115,20 +122,17 @@ impl Vram {
         let idx = id.0 as usize;
 
         match data_mode {
-            TileDataArea::Lower => {
-                match idx {
-                    0..=127 => {
-                        &self.tiles[256 + idx]
-                    }
-                    _ => {
-                        &self.tiles[128 + (idx - 128)]
-                    }
-                }
+            TileDataArea::Lower => match idx {
+                0..=127 => &self.tiles[256 + idx],
+                _ => &self.tiles[128 + (idx - 128)],
             },
-            TileDataArea::Upper => {
-                &self.tiles[idx]
-            }
+            TileDataArea::Upper => &self.tiles[idx],
         }
+    }
+
+    pub fn get_tile_upper(&self, id: TileId) -> &Tile {
+        let idx = id.0 as usize;
+        &self.tiles[idx]
     }
 
     pub fn get_map_0(&self) -> &[TileId; 1024] {
