@@ -204,13 +204,6 @@ impl LcdStatus {
         self.mode_2_interrupt_select = (value & (1 << 5)) != 0;
         self.mode_1_interrupt_select = (value & (1 << 4)) != 0;
         self.mode_0_interrupt_select = (value & (1 << 3)) != 0;
-
-        if self.mode_0_interrupt_select
-            | self.mode_1_interrupt_select
-            | self.mode_2_interrupt_select
-        {
-            unimplemented!("Mode 0, 1, or 2 interrupts are not yet supported");
-        }
     }
 }
 

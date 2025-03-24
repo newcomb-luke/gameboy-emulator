@@ -103,6 +103,18 @@ Both keyboard and click inputs are functional. It can fully execute the dmg-acid
         - [x] bit b3, r8
         - [x] res b3, r8
         - [x] set b3, r8
+- [ ] CPU Instructions Tests
+    - [x] 01 - Special
+    - [ ] 02 - Interrupts
+    - [ ] 03 - op sp, hl
+    - [ ] 04 - op r, imm
+    - [ ] 05 - op rp
+    - [ ] 06 - ld r, r
+    - [ ] 07 - jr, jp, call, ret, rst
+    - [ ] 08 - Misc Instructions
+    - [ ] 09 - op r, r
+    - [ ] 10 - Bit Ops
+    - [ ] 11 - op a, (hl)
 - [ ] Memory Map
     - [x] Boot ROM
     - [x] Cartrige ROM Bank 0

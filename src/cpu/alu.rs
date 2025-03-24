@@ -180,43 +180,29 @@ impl Cpu {
         let mut adjustment = 0;
 
         let flags = *self.state.flags();
+        let mut new_carry = false;
 
-        if flags.subtraction {
-            if flags.half_carry {
-                adjustment += 0x06;
-            }
-            if flags.carry {
-                adjustment += 0x60;
-            }
-
-            let result = self.sub_u8(adjustment, a);
-
-            let new_flags = self.state.flags_mut();
-            new_flags.subtraction = flags.subtraction;
-            new_flags.half_carry = false;
-
-            result
-        } else {
-            let mut set_carry = false;
-            if flags.half_carry | ((a & 0x0F) > 0x09) {
-                adjustment += 0x06;
-            }
-            if flags.carry | (a > 0x99) {
-                adjustment += 0x60;
-                set_carry = true;
-            }
-
-            let result = self.add_u8(a, adjustment);
-
-            let new_flags = self.state.flags_mut();
-            new_flags.subtraction = flags.subtraction;
-            new_flags.half_carry = false;
-            if set_carry {
-                new_flags.carry = true;
-            }
-
-            result
+        if flags.half_carry | (!flags.subtraction & ((a & 0x0F) > 0x09)) {
+            adjustment += 0x06;
         }
+        if flags.carry | (!flags.subtraction & (a > 0x99)) {
+            adjustment += 0x60;
+            new_carry = true;
+        }
+
+        let result = if flags.subtraction {
+            a.wrapping_sub(adjustment) // self.sub_u8(adjustment, a);
+        } else {
+            a.wrapping_add(adjustment) // self.add_u8(a, adjustment);
+        };
+
+        let new_flags = self.state.flags_mut();
+        new_flags.subtraction = flags.subtraction;
+        new_flags.half_carry = false;
+        new_flags.carry = new_carry;
+        new_flags.zero = result == 0;
+
+        result
     }
 
     pub fn rotate_left_u8(&mut self, v: u8, update_zero_flag: bool, through_carry: bool) -> u8 {
@@ -1019,6 +1005,105 @@ mod tests {
             let result = alu.dec_u8(1);
             assert_eq!(result, 0);
             Flags::just_subtraction().with_zero(true)
+        });
+    }
+
+    #[test]
+    fn test_decimal_adjust_no_change() {
+        test_alu_operation(|alu| {
+            let result = alu.decimal_adjust(0x40);
+            assert_eq!(result, 0x40);
+            Flags::zeros()
+        });
+    }
+
+    #[test]
+    fn test_decimal_adjust_no_change_zero() {
+        test_alu_operation(|alu| {
+            let result = alu.decimal_adjust(0x00);
+            assert_eq!(result, 0x00);
+            Flags::just_zero()
+        });
+    }
+
+    #[test]
+    fn test_decimal_adjust_after_add_ones() {
+        test_alu_operation(|alu| {
+            let a = alu.add_u8(0x01, 0x09);
+            let result = alu.decimal_adjust(a);
+            assert_eq!(result, 0x10);
+            Flags::zeros()
+        });
+    }
+
+    #[test]
+    fn test_decimal_adjust_after_add_tens() {
+        test_alu_operation(|alu| {
+            let a = alu.add_u8(0x10, 0x90);
+            let result = alu.decimal_adjust(a);
+            assert_eq!(result, 0x00);
+            Flags::just_carry().with_zero(true)
+        });
+    }
+
+    #[test]
+    fn test_decimal_adjust_after_carry_ones() {
+        test_alu_operation(|alu| {
+            alu.add_u8(0xFF, 0x01);
+            let a = alu.adc_u8(0x01, 0x09);
+            let result = alu.decimal_adjust(a);
+            assert_eq!(result, 0x11);
+            Flags::zeros()
+        });
+    }
+
+    #[test]
+    fn test_decimal_adjust_after_half_carry_ones() {
+        test_alu_operation(|alu| {
+            let a = alu.add_u8(0x01, 0x0F);
+            let result = alu.decimal_adjust(a);
+            assert_eq!(result, 0x16);
+            Flags::zeros()
+        });
+    }
+
+    #[test]
+    fn test_decimal_adjust_after_sub_ones() {
+        test_alu_operation(|alu| {
+            let a = alu.sub_u8(0x01, 0x10);
+            let result = alu.decimal_adjust(a);
+            assert_eq!(result, 0x09);
+            Flags::just_subtraction()
+        });
+    }
+
+    #[test]
+    fn test_decimal_adjust_after_sub_tens() {
+        test_alu_operation(|alu| {
+            let a = alu.sub_u8(0x10, 0x90);
+            let result = alu.decimal_adjust(a);
+            assert_eq!(result, 0x80);
+            Flags::just_subtraction()
+        });
+    }
+
+    #[test]
+    fn test_decimal_adjust_after_borrow() {
+        test_alu_operation(|alu| {
+            let a = alu.sub_u8(0x01, 0x00);
+            let result = alu.decimal_adjust(a);
+            assert_eq!(result, 0x99);
+            Flags::just_subtraction().with_carry(true)
+        });
+    }
+
+    #[test]
+    fn test_decimal_adjust_after_half_borrow() {
+        test_alu_operation(|alu| {
+            let a = alu.sub_u8(0x01, 0x10);
+            let result = alu.decimal_adjust(a);
+            assert_eq!(result, 0x09);
+            Flags::just_subtraction()
         });
     }
 }
