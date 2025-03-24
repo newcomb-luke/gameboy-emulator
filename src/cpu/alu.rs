@@ -329,7 +329,7 @@ mod tests {
     {
         let boot_rom = DEFAULT_BOOT_ROM;
         let cartridge = Cartridge::empty();
-        let mut alu = Cpu::new(Bus::new(boot_rom, cartridge));
+        let mut alu = Cpu::new(Bus::new(boot_rom, cartridge), false);
 
         let desired_flags = f(&mut alu);
 
@@ -937,6 +937,88 @@ mod tests {
             let result = alu.set_bit_u8(4, 0b1000_1011);
             assert_eq!(result, 0b1001_1011);
             Flags::zeros()
+        });
+    }
+
+    #[test]
+    fn test_inc_u16_zero() {
+        test_alu_operation(|alu| {
+            let result = alu.inc_u16(0xFFFF);
+            assert_eq!(result, 0);
+            Flags::zeros()
+        });
+    }
+
+    #[test]
+    fn test_inc_u16() {
+        test_alu_operation(|alu| {
+            let result = alu.inc_u16(4);
+            assert_eq!(result, 5);
+            Flags::zeros()
+        });
+    }
+
+    #[test]
+    fn test_dec_u16_zero() {
+        test_alu_operation(|alu| {
+            let result = alu.dec_u16(1);
+            assert_eq!(result, 0);
+            Flags::zeros()
+        });
+    }
+
+    #[test]
+    fn test_dec_u16() {
+        test_alu_operation(|alu| {
+            let result = alu.dec_u16(4);
+            assert_eq!(result, 3);
+            Flags::zeros()
+        });
+    }
+
+    #[test]
+    fn test_inc_u8_zero() {
+        test_alu_operation(|alu| {
+            let result = alu.inc_u8(0xFF);
+            assert_eq!(result, 0);
+            Flags::new(false, true, false, true)
+        });
+    }
+
+    #[test]
+    fn test_inc_u8_carry_unchanged() {
+        test_alu_operation(|alu| {
+            alu.state.flags_mut().carry = true;
+            let result = alu.inc_u8(0xFF);
+            assert_eq!(result, 0);
+            Flags::new(true, true, false, true)
+        });
+    }
+
+    #[test]
+    fn test_inc_u8() {
+        test_alu_operation(|alu| {
+            let result = alu.inc_u8(2);
+            assert_eq!(result, 3);
+            Flags::zeros()
+        });
+    }
+
+    #[test]
+    fn test_dec_u8() {
+        test_alu_operation(|alu| {
+            let result = alu.dec_u8(2);
+            assert_eq!(result, 1);
+            Flags::just_subtraction()
+        });
+    }
+
+    #[test]
+    fn test_dec_u8_zero() {
+        test_alu_operation(|alu| {
+            let result = alu.dec_u8(1);
+            assert_eq!(result, 0);
+            Flags::just_subtraction().with_zero(true)
         });
     }
 }

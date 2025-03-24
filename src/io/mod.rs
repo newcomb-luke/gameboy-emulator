@@ -161,7 +161,8 @@ impl IO {
             0xFF0F => self.interrupts.read_interrupt_flag(),
             0xFFFF => self.interrupts.read_interrupt_enable(),
             _ => {
-                return Err(crate::cpu::error::Error::MemoryReadFault(address));
+                0xFF
+                // return Err(crate::cpu::error::Error::MemoryReadFault(address));
             }
         })
     }
@@ -236,7 +237,7 @@ impl IO {
             0xFF0F => self.interrupts.write_interrupt_flag(data),
             0xFFFF => self.interrupts.write_interrupt_enable(data),
             _ => {
-                return Err(crate::cpu::error::Error::MemoryWriteFault(address, data));
+                // return Err(crate::cpu::error::Error::MemoryWriteFault(address, data));
             }
         }
 

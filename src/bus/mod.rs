@@ -44,13 +44,19 @@ impl Bus {
             0x4000..=0x7FFF => self.cartridge.bank1()[(address as usize) - 0x4000],
             0x8000..=0x9FFF => self.ppu.vram().read_u8(address)?,
             0xC000..=0xDFFF => self.work_ram.read_u8(address),
+            0xE000..=0xFDFF => {
+                // Echo RAM
+                let wrapped_address = address - 0x2000;
+                self.work_ram.read_u8(wrapped_address)
+            }
             0xFE00..=0xFE9F => self.ppu.oam().read_u8(address),
             0xFEA0..=0xFEFF => 0xFF, // Unusable, but some games have bugs that read/write it
             0xFF00..=0xFF7E => self.io.read_u8(address)?,
             0xFF7F => 0xFF, // Tetris writes to this on accident
             0xFF80..=0xFFFE => self.high_ram.read_u8(address),
             _ => {
-                return Err(Error::MemoryReadFault(address));
+                0xFF
+                // return Err(Error::MemoryReadFault(address));
             }
         })
     }
@@ -67,6 +73,11 @@ impl Bus {
             0x0000..=0x7FFF => {}
             0x8000..=0x9FFF => self.ppu.vram_mut().write_u8(address, data)?,
             0xC000..=0xDFFF => self.work_ram.write_u8(address, data),
+            0xE000..=0xFDFF => {
+                // Echo RAM
+                let wrapped_address = address - 0x2000;
+                self.work_ram.write_u8(wrapped_address, data)
+            }
             0xFE00..=0xFE9F => self.ppu.oam_mut().write_u8(address, data),
             0xFEA0..=0xFEFF => {} // Unusable, but some games have bugs that read/write it
             0xFF00..=0xFF7E => self.io.write_u8(address, data)?,
@@ -74,7 +85,7 @@ impl Bus {
             0xFF80..=0xFFFE => self.high_ram.write_u8(address, data),
             0xFFFF => self.io.write_u8(address, data)?,
             _ => {
-                return Err(Error::MemoryWriteFault(address, data));
+                // return Err(Error::MemoryWriteFault(address, data));
             }
         })
     }

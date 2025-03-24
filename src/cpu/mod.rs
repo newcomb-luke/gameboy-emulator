@@ -22,17 +22,19 @@ pub struct Cpu {
     decoder: Decoder,
     interrupt_enable_next: bool,
     halted: bool,
+    breakpoints_enabled: bool,
     hit_breakpoint_instruction: bool
 }
 
 impl Cpu {
-    pub fn new(bus: Bus) -> Self {
+    pub fn new(bus: Bus, enable_breakpoints: bool) -> Self {
         Self {
             state: ExecutionState::new(),
             bus,
             decoder: Decoder::new(),
             interrupt_enable_next: false,
             halted: false,
+            breakpoints_enabled: enable_breakpoints,
             hit_breakpoint_instruction: false
         }
     }
@@ -42,7 +44,7 @@ impl Cpu {
     }
 
     pub fn hit_breakpoint_instruction(&self) -> bool {
-        self.hit_breakpoint_instruction
+        self.breakpoints_enabled & self.hit_breakpoint_instruction
     }
 
     pub fn step(&mut self) -> Result<usize, Error> {

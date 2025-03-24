@@ -331,10 +331,10 @@ impl From<Flags> for u8 {
     fn from(value: Flags) -> Self {
         let mut b = 0;
 
-        b |= (if value.carry { 1 } else { 0 }) >> 4;
-        b |= (if value.half_carry { 1 } else { 0 }) >> 5;
-        b |= (if value.subtraction { 1 } else { 0 }) >> 6;
-        b |= (if value.zero { 1 } else { 0 }) >> 7;
+        b |= if value.carry { 1 << 4 } else { 0 };
+        b |= if value.half_carry { 1 << 5 } else { 0 };
+        b |= if value.subtraction { 1 << 6 } else { 0 };
+        b |= if value.zero { 1 << 7 } else { 0 };
 
         b
     }
