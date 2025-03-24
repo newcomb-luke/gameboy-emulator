@@ -21,7 +21,8 @@ pub struct Cpu {
     bus: Bus,
     decoder: Decoder,
     interrupt_enable_next: bool,
-    halted: bool
+    halted: bool,
+    hit_breakpoint_instruction: bool
 }
 
 impl Cpu {
@@ -31,12 +32,17 @@ impl Cpu {
             bus,
             decoder: Decoder::new(),
             interrupt_enable_next: false,
-            halted: false
+            halted: false,
+            hit_breakpoint_instruction: false
         }
     }
 
     pub fn execution_state(&self) -> &ExecutionState {
         &self.state
+    }
+
+    pub fn hit_breakpoint_instruction(&self) -> bool {
+        self.hit_breakpoint_instruction
     }
 
     pub fn step(&mut self) -> Result<usize, Error> {
@@ -167,6 +173,10 @@ impl Cpu {
             Instruction::LdReg8Reg8(dest, src) => {
                 let val = self.get_r8(src)?;
                 self.update_r8(dest, val)?;
+
+                if (dest == src) & (dest == Register8::B) {
+                    self.hit_breakpoint_instruction = true;
+                }
             }
             Instruction::Halt => {
                 self.halted = true;

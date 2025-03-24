@@ -88,6 +88,10 @@ impl Emulator {
             }
         }
 
+        if self.cpu.hit_breakpoint_instruction() {
+            return Some(pc);
+        }
+
         None
     }
 }

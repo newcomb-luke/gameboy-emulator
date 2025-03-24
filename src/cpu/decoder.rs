@@ -21,7 +21,7 @@ impl Decoder {
         let ip = state.instruction_pointer();
         let opcode_byte = bus.read_u8(state.instruction_pointer())?;
 
-        let opcode = Opcode::try_from(opcode_byte).map_err(|_| Error::InvalidInstruction(ip))?;
+        let opcode = Opcode::try_from(opcode_byte).map_err(|_| Error::InvalidInstruction(ip, opcode_byte))?;
 
         let instruction = match opcode {
             Opcode::Nop => Instruction::Nop,
@@ -175,7 +175,7 @@ impl Decoder {
             Opcode::Prefix => {
                 let prefixed_byte = bus.read_u8(ip + 1)?;
                 let prefixed =
-                    Prefixed::try_from(prefixed_byte).map_err(|_| Error::InvalidInstruction(ip))?;
+                    Prefixed::try_from(prefixed_byte).map_err(|_| Error::InvalidInstruction(ip, prefixed_byte))?;
 
                 match prefixed {
                     Prefixed::Rlc
@@ -439,6 +439,8 @@ impl TryFrom<u8> for Opcode {
             Opcode::Inc16
         } else if value & 0b1100_1111 == 0b0000_1011 {
             Opcode::Dec16
+        } else if value & 0b1100_1111 == 0b0000_1001 {
+            Opcode::AddHl
         } else if value & 0b1100_0111 == 0b0000_0100 {
             Opcode::Inc8
         } else if value & 0b1100_0111 == 0b0000_0101 {
