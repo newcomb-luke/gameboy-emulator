@@ -222,6 +222,43 @@ impl Ppu {
             }
         }
 
+        if lcd.control().window_enabled() {
+            let map = match lcd.control().window_tile_map_area() {
+                TileMapArea::Lower => self.vram.get_map_0(),
+                TileMapArea::Upper => self.vram.get_map_1(),
+            };
+
+            let window_x = lcd.read_window_x() as usize;
+            let window_y = lcd.read_window_y() as usize;
+
+            if y >= window_y {
+                let inside_y = y - window_y;
+
+                for x in 0..DISPLAY_WIDTH_PIXELS {
+                    if x < (window_x - 7) {
+                        continue;
+                    }
+
+                    let inside_x = x - (window_x - 7);
+                    let tile_location = ((inside_y / 8) * 32) + (inside_x / 8);
+
+                    let tile_id = map[tile_location];
+                    let tile = self.vram.get_tile(data_mode, tile_id);
+
+                    let tile_y = inside_y % 8;
+                    let tile_x = inside_x % 8;
+
+                    let color_ids = tile.color_data();
+
+                    let pixel_index = (y * DISPLAY_WIDTH_PIXELS) + x;
+                    let color_id = color_ids[tile_y][tile_x];
+
+                    self.bg_priority[pixel_index] = color_id != ColorId::Zero;
+                    self.pixel_buffer[pixel_index] = self.color_id_to_color(bg_palette, color_id);
+                }
+            }
+        }
+
         let obj_size = lcd.control().obj_size();
         let height = match obj_size {
             ObjSize::Single => 8,

@@ -132,12 +132,12 @@ Both keyboard and click inputs are functional.
     - [x] Background enable flag
     - [x] Background tile map select
     - [x] Background tile data select
-    - [ ] Display window
-    - [ ] Window enable flag
-    - [ ] Window tile map select
+    - [x] Display window
+    - [x] Window enable flag
+    - [x] Window tile map select
     - [ ] Window internal line counter
-    - [ ] Window Y movement
-    - [ ] Window X movement
+    - [x] Window Y movement
+    - [x] Window X movement
     - [x] Scroll Y movement
     - [x] Scroll X movement
     - [x] Display tile
