@@ -1,6 +1,6 @@
 use crate::io::lcd::TileDataArea;
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum ColorId {
     Zero,
     One,

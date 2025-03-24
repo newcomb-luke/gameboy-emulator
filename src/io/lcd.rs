@@ -344,8 +344,8 @@ pub struct Lcd {
     window_y: IORegister,
     window_x: IORegister,
     background_palette: Palette,
-    obj_palette_0: IORegister,
-    obj_palette_1: IORegister,
+    obj_palette_0: Palette,
+    obj_palette_1: Palette,
 }
 
 impl Lcd {
@@ -360,8 +360,8 @@ impl Lcd {
             window_y: IORegister::new(),
             window_x: IORegister::new(),
             background_palette: Palette::default(),
-            obj_palette_0: IORegister::new(),
-            obj_palette_1: IORegister::new(),
+            obj_palette_0: Palette::default(),
+            obj_palette_1: Palette::default(),
         }
     }
 
@@ -462,19 +462,27 @@ impl Lcd {
         self.background_palette = Palette::from(value);
     }
 
+    pub fn obj_palette_0(&self) -> Palette {
+        self.obj_palette_0
+    }
+
     pub fn read_obj_palette_0(&self) -> u8 {
-        self.obj_palette_0.read()
+        self.obj_palette_0.into()
     }
 
     pub fn write_obj_palette_0(&mut self, value: u8) {
-        self.obj_palette_0.write(value);
+        self.obj_palette_0 = Palette::from(value);
+    }
+
+    pub fn obj_palette_1(&self) -> Palette {
+        self.obj_palette_1
     }
 
     pub fn read_obj_palette_1(&self) -> u8 {
-        self.obj_palette_1.read()
+        self.obj_palette_1.into()
     }
 
     pub fn write_obj_palette_1(&mut self, value: u8) {
-        self.obj_palette_1.write(value);
+        self.obj_palette_1 = Palette::from(value);
     }
 }

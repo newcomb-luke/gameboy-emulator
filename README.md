@@ -141,16 +141,16 @@ Both keyboard and click inputs are functional.
     - [x] Scroll Y movement
     - [x] Scroll X movement
     - [x] Display tile
-    - [ ] Read object attributes
-    - [ ] Display objects
-    - [ ] Object palette
-    - [ ] Object horizontal flip
-    - [ ] Object vertical flip
+    - [x] Read object attributes
+    - [x] Display objects
+    - [x] Object palette
+    - [x] Object horizontal flip
+    - [x] Object vertical flip
     - [ ] Object to background priority
-    - [ ] Object enable flag
+    - [x] Object enable flag
     - [ ] Object size support
     - [ ] Object priority
-    - [ ] 10 objects per line draw limit
+    - [x] 10 objects per line draw limit
 - [ ] I/O Registers
     - [x]  Joypad Input
     - [x]  Serial transfer
