@@ -146,10 +146,10 @@ Both keyboard and click inputs are functional.
     - [x] Object palette
     - [x] Object horizontal flip
     - [x] Object vertical flip
-    - [ ] Object to background priority
+    - [x] Object to background priority
     - [x] Object enable flag
     - [ ] Object size support
-    - [ ] Object priority
+    - [ ] Object order priority
     - [x] 10 objects per line draw limit
 - [ ] I/O Registers
     - [x]  Joypad Input

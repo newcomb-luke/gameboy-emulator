@@ -52,6 +52,7 @@ pub struct Ppu {
     vram: Vram,
     oam: ObjectAttributeMemory,
     pixel_buffer: Box<[Color32; TOTAL_PIXELS]>,
+    bg_priority: [bool; TOTAL_PIXELS],
     off_display: Box<[Color32; TOTAL_PIXELS]>,
     current_cycles: usize,
     current_scanline: usize,
@@ -63,6 +64,7 @@ impl Ppu {
             vram: Vram::zeroed(),
             oam: ObjectAttributeMemory::zeroed(),
             pixel_buffer: Self::empty_pixel_buffer(),
+            bg_priority: [false; TOTAL_PIXELS],
             off_display: Self::off_display(),
             current_cycles: 0,
             current_scanline: 0,
@@ -211,8 +213,10 @@ impl Ppu {
             let color_id = color_ids[tile_y][tile_x];
 
             if bg_enabled {
+                self.bg_priority[pixel_index] = color_id != ColorId::Zero;
                 self.pixel_buffer[pixel_index] = self.color_id_to_color(bg_palette, color_id);
             } else {
+                self.bg_priority[pixel_index] = false;
                 self.pixel_buffer[pixel_index] = self.color_id_to_color(bg_palette, ColorId::Zero);
             }
         }
@@ -244,6 +248,7 @@ impl Ppu {
                 PaletteSelection::Pallete0 => obj_palette_0,
                 PaletteSelection::Pallete1 => obj_palette_1,
             };
+            let bg_priority= obj.attributes().priority();
 
             for x in 0..8 {
                 for y in 0..8 {
@@ -265,7 +270,7 @@ impl Ppu {
                     let color_id = color_ids[y][x];
                     let pixel_index = (screen_y * DISPLAY_WIDTH_PIXELS) + screen_x;
 
-                    if color_id != ColorId::Zero {
+                    if (!bg_priority | !self.bg_priority[pixel_index]) & (color_id != ColorId::Zero) {
                         self.pixel_buffer[pixel_index] = self.color_id_to_color(obj_palette, color_id);
                     }
                 }
