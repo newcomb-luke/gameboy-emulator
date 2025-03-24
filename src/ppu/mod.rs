@@ -59,6 +59,7 @@ pub struct Ppu {
     off_display: Box<[Color32; TOTAL_PIXELS]>,
     current_cycles: usize,
     current_scanline: usize,
+    window_scanline: usize
 }
 
 impl Ppu {
@@ -71,6 +72,7 @@ impl Ppu {
             off_display: Self::off_display(),
             current_cycles: 0,
             current_scanline: 0,
+            window_scanline: 0,
         }
     }
 
@@ -163,7 +165,10 @@ impl Ppu {
             self.current_scanline = scanline;
 
             if new_mode == PpuMode::VBlank {
-                new_frame = old_mode != PpuMode::VBlank;
+                if old_mode != PpuMode::VBlank {
+                    new_frame = true;
+                    self.window_scanline = 0;
+                }
             }
         }
 
@@ -232,12 +237,16 @@ impl Ppu {
             let window_y = lcd.read_window_y() as usize;
 
             if y >= window_y {
-                let inside_y = y - window_y;
+                let inside_y = self.window_scanline;
+
+                let mut rendered = false;
 
                 for x in 0..DISPLAY_WIDTH_PIXELS {
                     if x < (window_x - 7) {
                         continue;
                     }
+
+                    rendered = true;
 
                     let inside_x = x - (window_x - 7);
                     let tile_location = ((inside_y / 8) * 32) + (inside_x / 8);
@@ -255,6 +264,10 @@ impl Ppu {
 
                     self.bg_priority[pixel_index] = color_id != ColorId::Zero;
                     self.pixel_buffer[pixel_index] = self.color_id_to_color(bg_palette, color_id);
+                }
+
+                if rendered {
+                    self.window_scanline += 1;
                 }
             }
         }

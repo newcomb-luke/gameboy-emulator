@@ -138,13 +138,7 @@ impl eframe::App for EmuApp {
 
         let mut cycles_done = 0;
 
-        let cycles_per_frame = if self.emulator.execution_state().instruction_pointer() > 0x100 {
-            167_000
-        } else {
-            167_000
-        };
-
-        while cycles_done < cycles_per_frame {
+        while cycles_done < 167_000 {
             if let Some(_) = self.emulator.breakpoint_reached() {
                 self.breakpoint_reached = true;
                 break;

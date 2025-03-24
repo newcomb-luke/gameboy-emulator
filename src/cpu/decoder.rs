@@ -425,6 +425,8 @@ impl TryFrom<u8> for Opcode {
     fn try_from(value: u8) -> Result<Self, Self::Error> {
         Ok(if value == 0 {
             Opcode::Nop
+        } else if value == 0b0111_0110 {
+            Opcode::Halt
         } else if value & 0b1100_1111 == 0b0000_0001 {
             Opcode::LdReg16
         } else if value & 0b1100_1111 == 0b0000_0010 {
@@ -467,8 +469,6 @@ impl TryFrom<u8> for Opcode {
             Opcode::Stop
         } else if value & 0b1100_0000 == 0b0100_0000 {
             Opcode::LdReg8Reg8
-        } else if value == 0b0111_0110 {
-            Opcode::Halt
         } else if value & 0b1111_1000 == 0b1000_0000 {
             Opcode::AddReg8
         } else if value & 0b1111_1000 == 0b1000_1000 {

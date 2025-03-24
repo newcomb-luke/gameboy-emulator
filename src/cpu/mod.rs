@@ -21,6 +21,7 @@ pub struct Cpu {
     bus: Bus,
     decoder: Decoder,
     interrupt_enable_next: bool,
+    halted: bool
 }
 
 impl Cpu {
@@ -30,6 +31,7 @@ impl Cpu {
             bus,
             decoder: Decoder::new(),
             interrupt_enable_next: false,
+            halted: false
         }
     }
 
@@ -39,6 +41,14 @@ impl Cpu {
 
     pub fn step(&mut self) -> Result<usize, Error> {
         let mut cycles = 0;
+
+        if self.halted {
+            if self.detect_interrupt().is_some() {
+                self.halted = false;
+            } else {
+                return Ok(1);
+            }
+        }
 
         if self.state.interrupts_enabled() {
             if let Some(interrupt) = self.detect_interrupt() {
@@ -151,13 +161,16 @@ impl Cpu {
             }
             Instruction::Stop => {
                 self.bus_mut().io_mut().timer_mut().set_divider(0);
+                self.halted = true;
                 todo!()
             }
             Instruction::LdReg8Reg8(dest, src) => {
                 let val = self.get_r8(src)?;
                 self.update_r8(dest, val)?;
             }
-            Instruction::Halt => todo!(),
+            Instruction::Halt => {
+                self.halted = true;
+            },
             Instruction::AddReg8(r8)
             | Instruction::AdcReg8(r8)
             | Instruction::SubReg8(r8)

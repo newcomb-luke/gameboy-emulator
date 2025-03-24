@@ -4,7 +4,7 @@ A simple GameBoy emulator written in Rust just for fun
 ## Current State:
 
 The emulator can make it through the Boot ROM successfully and enter a game. The Nintendo logo scrolls down from the top of the screen.
-Both keyboard and click inputs are functional.
+Both keyboard and click inputs are functional. It can fully execute the dmg-acid2 test for testing the graphics emulation.
 
 ![Screenshot of emulator](images/progress-screenshot.png)
 
@@ -17,15 +17,15 @@ Both keyboard and click inputs are functional.
     - [x] Instruction execution
     - [x] Execute Boot ROM
     - [ ] Execute all cpu_instrs.gb tests
-    - [ ] Execute dmg-acid2.gb
+    - [x] Execute dmg-acid2.gb
     - [ ] Play Tetris
 
 - [x] Instruction decoding
     - [x] All instruction opcodes
     - [x] All instruction arguments
     - [x] All instruction lengths
-- [ ] Instruction execution
-    - [ ] Block 0
+- [x] Instruction execution
+    - [x] Block 0
         - [x] nop
         - [x] ld r16, imm16
         - [x] ld \[r16mem\], a
@@ -47,10 +47,10 @@ Both keyboard and click inputs are functional.
         - [x] ccf
         - [x] jr imm8
         - [x] jr cond, imm8
-        - [ ] stop
-    - [ ] Block 1: 8-Bit Register-to-Register Loads
+        - [x] stop
+    - [x] Block 1: 8-Bit Register-to-Register Loads
         - [x] ld r8, r8
-        - [ ] halt
+        - [x] halt
     - [x] Block 2: 8-Bit Arithmetic
         - [x] add a, r8
         - [x] adc a, r8
@@ -124,7 +124,7 @@ Both keyboard and click inputs are functional.
     - [x] Buttons
     - [ ] Decorative text / details
     - [x] Keyboard inputs
-- [ ] Graphics
+- [x] Graphics
     - [x] Reading tiles from VRAM
     - [x] Placing tiles based on tile map
     - [x] Display background
@@ -135,7 +135,7 @@ Both keyboard and click inputs are functional.
     - [x] Display window
     - [x] Window enable flag
     - [x] Window tile map select
-    - [ ] Window internal line counter
+    - [x] Window internal line counter
     - [x] Window Y movement
     - [x] Window X movement
     - [x] Scroll Y movement
