@@ -7,6 +7,7 @@ use cpu::{error::Error, execution_state::ExecutionState, Cpu};
 use eframe::egui::Color32;
 use io::{interrupts::Interrupts, joypad::JoypadInput, timer::Timer};
 
+pub mod app;
 pub mod boot;
 pub mod bus;
 pub mod cartridge;
@@ -14,6 +15,7 @@ pub mod cpu;
 pub mod io;
 pub mod memory;
 pub mod ppu;
+pub mod config;
 
 pub struct Emulator {
     cpu: Cpu,
@@ -96,20 +98,20 @@ impl Emulator {
     }
 }
 
-pub fn read_cartridge<P>(path: P) -> Cartridge
+pub fn read_cartridge<P>(path: P) -> Result<Cartridge, crate::cartridge::Error>
 where
     P: AsRef<Path>,
 {
     let mut cartridge_file = std::fs::File::open(path).unwrap();
-    Cartridge::read(&mut cartridge_file).unwrap()
+    Cartridge::read(&mut cartridge_file)
 }
 
-pub fn read_boot_rom<P>(path: P) -> BootRom
+pub fn read_boot_rom<P>(path: P) -> Result<BootRom, crate::boot::error::Error>
 where
     P: AsRef<Path>,
 {
     let mut boot_rom_file = std::fs::File::open(path).unwrap();
-    BootRomReader::read(&mut boot_rom_file).unwrap()
+    BootRomReader::read(&mut boot_rom_file)
 }
 
 #[derive(Clone, Copy, PartialEq, Eq)]

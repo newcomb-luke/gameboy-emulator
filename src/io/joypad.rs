@@ -75,10 +75,22 @@ impl JoypadInput {
 
     fn read_dpad(&self, state: InputState) -> u8 {
         let mut value = 0;
-        value |= if state.dpad_state.is_down() { 0 } else { 1 << 3 };
+        value |= if state.dpad_state.is_down() {
+            0
+        } else {
+            1 << 3
+        };
         value |= if state.dpad_state.is_up() { 0 } else { 1 << 2 };
-        value |= if state.dpad_state.is_left() { 0 } else { 1 << 1 };
-        value |= if state.dpad_state.is_right() { 0 } else { 1 << 0 };
+        value |= if state.dpad_state.is_left() {
+            0
+        } else {
+            1 << 1
+        };
+        value |= if state.dpad_state.is_right() {
+            0
+        } else {
+            1 << 0
+        };
         value
     }
 

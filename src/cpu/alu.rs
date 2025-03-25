@@ -1155,7 +1155,7 @@ mod tests {
     }
 
     #[test]
-    fn test_add_sp_1() { 
+    fn test_add_sp_1() {
         test_alu_operation(|alu| {
             let sp = 200;
             let result = alu.add_sp(sp, 1);
@@ -1165,7 +1165,7 @@ mod tests {
     }
 
     #[test]
-    fn test_add_sp_negative_1() { 
+    fn test_add_sp_negative_1() {
         test_alu_operation(|alu| {
             let sp = 200;
             let result = alu.add_sp(sp, (-1_i8) as u8);

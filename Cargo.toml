@@ -8,3 +8,7 @@ eframe = "0.31"
 egui_extras = { version = "0.31", features = ["default", "all_loaders"] }
 image = { version = "0.25", features = ["jpeg", "png"] }
 clap = { version = "4.5", features = ["derive"] }
+native-dialog = { version = "0.7.0", features = ["windows_dpi_awareness"] }
+directories = "6.0"
+serde = { version = "1.0", features = ["derive"] }
+serde_json = { version = "1.0" }

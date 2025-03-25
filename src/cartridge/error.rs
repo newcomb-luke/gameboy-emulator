@@ -6,6 +6,8 @@ pub enum Error {
     InvalidCartridgeRomSize,
     InvalidCartridgeRamSize,
     InvalidCartridgeDestinationCode,
+    UnsupportedCartridgeType,
+    FileSizeError,
 }
 
 impl From<std::io::Error> for Error {
