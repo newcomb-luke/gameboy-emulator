@@ -10,15 +10,15 @@ Both keyboard and click inputs are functional. It can fully execute the dmg-acid
 
 ## Progress:
 
-- [ ] MVP
+- [x] MVP
     - [x] Cartridge header reading
     - [x] Cartridge reading
     - [x] Instruction decoding
     - [x] Instruction execution
     - [x] Execute Boot ROM
-    - [ ] Execute all cpu_instrs.gb tests
+    - [x] Execute all cpu_instrs.gb tests
     - [x] Execute dmg-acid2.gb
-    - [ ] Play Tetris
+    - [x] Play Tetris
 
 - [x] Instruction decoding
     - [x] All instruction opcodes
