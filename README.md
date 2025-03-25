@@ -127,7 +127,7 @@ Both keyboard and click inputs are functional. It can fully execute the dmg-acid
     - [ ] ~~Cartridge RAM Bank Swapping~~
     - [x] Work RAM Bank 0
     - [x] Work RAM Bank 1
-    - [ ] Echo RAM
+    - [x] Echo RAM
     - [x] OAM RAM
     - [x] HRAM
     - [x] Interrupt Enable Register
