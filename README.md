@@ -106,7 +106,7 @@ Both keyboard and click inputs are functional. It can fully execute the dmg-acid
 - [ ] CPU Instructions Tests
     - [x] 01 - Special
     - [ ] 02 - Interrupts
-    - [ ] 03 - op sp, hl
+    - [x] 03 - op sp, hl
     - [x] 04 - op r, imm
     - [ ] 05 - op rp
     - [x] 06 - ld r, r

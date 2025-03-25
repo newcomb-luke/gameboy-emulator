@@ -24,7 +24,7 @@ pub struct Cpu {
     interrupt_enable_next: bool,
     halted: bool,
     breakpoints_enabled: bool,
-    hit_breakpoint_instruction: bool
+    hit_breakpoint_instruction: bool,
 }
 
 impl Cpu {
@@ -37,7 +37,7 @@ impl Cpu {
             interrupt_enable_next: false,
             halted: false,
             breakpoints_enabled: enable_breakpoints,
-            hit_breakpoint_instruction: false
+            hit_breakpoint_instruction: false,
         }
     }
 
@@ -118,8 +118,8 @@ impl Cpu {
             Instruction::AddHl(r16) => {
                 let val1 = self.get_r16(Register16::Hl);
                 let val2 = self.get_r16(r16);
-                let result = self.add_u16(val1, val2);
-                self.update_r16(r16, result);
+                let result = self.add_hl(val1, val2);
+                self.update_r16(Register16::Hl, result);
             }
             Instruction::Inc8(r8) | Instruction::Dec8(r8) => {
                 let val = self.get_r8(r8)?;
@@ -190,7 +190,7 @@ impl Cpu {
             }
             Instruction::Halt => {
                 self.halted = true;
-            },
+            }
             Instruction::AddReg8(r8)
             | Instruction::AdcReg8(r8)
             | Instruction::SubReg8(r8)
@@ -325,13 +325,13 @@ impl Cpu {
             }
             Instruction::AddSp(imm8) => {
                 let sp = self.state.stack_pointer();
-                let new_sp = self.add_u16(sp, imm8.into());
+                let new_sp = self.add_sp(sp, imm8.into());
                 self.state.set_stack_pointer(new_sp);
             }
             Instruction::LdHlSpImm8(imm8) => {
                 let sp = self.state.stack_pointer();
-                let val = self.add_u16(sp, imm8.into());
-                self.update_r16(Register16::Hl, val);
+                let result = self.add_sp(sp, imm8.into());
+                self.update_r16(Register16::Hl, result);
             }
             Instruction::LdSpHl => {
                 self.state.set_stack_pointer(self.get_r16(Register16::Hl));
@@ -343,7 +343,7 @@ impl Cpu {
             }
             Instruction::Ei => {
                 self.after_ei = true;
-            },
+            }
             // Prefixed
             Instruction::Rlc(r8)
             | Instruction::Rrc(r8)

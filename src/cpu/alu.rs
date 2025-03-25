@@ -29,15 +29,25 @@ impl Cpu {
         result
     }
 
+    pub fn add_hl(&mut self, v1: u16, v2: u16) -> u16 {
+        self.generic_add_u16(v1, v2, false, false)
+    }
+
     pub fn add_u16(&mut self, v1: u16, v2: u16) -> u16 {
-        self.generic_add_u16(v1, v2, false)
+        self.generic_add_u16(v1, v2, false, true)
     }
 
     pub fn adc_u16(&mut self, v1: u16, v2: u16) -> u16 {
-        self.generic_add_u16(v1, v2, true)
+        self.generic_add_u16(v1, v2, true, true)
     }
 
-    fn generic_add_u16(&mut self, v1: u16, v2: u16, with_carry: bool) -> u16 {
+    fn generic_add_u16(
+        &mut self,
+        v1: u16,
+        v2: u16,
+        with_carry: bool,
+        update_zero_flag: bool,
+    ) -> u16 {
         let carry = if with_carry & self.state.flags().carry {
             1
         } else {
@@ -49,10 +59,42 @@ impl Cpu {
         let half_result = (v1 & 0x0FFF) + (v2 & 0x0FFF) + carry;
         let half_carry = half_result > 0x0FFF;
 
-        let flags = Flags::new(first_carry | second_carry, half_carry, false, result == 0);
+        let zero_before = self.state.flags().zero;
+
+        let flags = Flags::new(
+            first_carry | second_carry,
+            half_carry,
+            false,
+            if update_zero_flag {
+                result == 0
+            } else {
+                zero_before
+            },
+        );
         self.state.set_flags(flags);
 
         result
+    }
+
+    pub fn add_sp(&mut self, sp: u16, val: u8) -> u16 {
+        let is_negative = (val >> 7) != 0;
+        let lower_sp = (sp & 0xFF) as u8;
+        let upper_sp = ((sp >> 8) & 0xFF) as u8;
+        let lower_result = self.add_u8(lower_sp, val);
+
+        self.state.flags_mut().zero = false;
+
+        let upper_result = if !is_negative & self.state.flags().carry {
+            // Carry from the lower byte into the upper one
+            upper_sp.wrapping_add(1)
+        } else if is_negative & !self.state.flags().carry {
+            // There was a borrow from the subtraction of the lower byte
+            upper_sp.wrapping_sub(1)
+        } else {
+            upper_sp
+        };
+
+        ((upper_result as u16) << 8) | lower_result as u16
     }
 
     pub fn add_u8(&mut self, v1: u8, v2: u8) -> u8 {
@@ -249,7 +291,8 @@ impl Cpu {
 
         let result = hi | lo;
 
-        self.state.set_flags(Flags::new(false, false, false, result == 0));
+        self.state
+            .set_flags(Flags::new(false, false, false, result == 0));
 
         result
     }
@@ -1108,6 +1151,26 @@ mod tests {
             let result = alu.decimal_adjust(a);
             assert_eq!(result, 0x09);
             Flags::just_subtraction()
+        });
+    }
+
+    #[test]
+    fn test_add_sp_1() { 
+        test_alu_operation(|alu| {
+            let sp = 200;
+            let result = alu.add_sp(sp, 1);
+            assert_eq!(result, 201);
+            Flags::zeros()
+        });
+    }
+
+    #[test]
+    fn test_add_sp_negative_1() { 
+        test_alu_operation(|alu| {
+            let sp = 200;
+            let result = alu.add_sp(sp, (-1_i8) as u8);
+            assert_eq!(result, 199);
+            Flags::new(true, true, false, false)
         });
     }
 }

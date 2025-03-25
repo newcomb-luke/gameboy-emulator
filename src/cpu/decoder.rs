@@ -21,7 +21,8 @@ impl Decoder {
         let ip = state.instruction_pointer();
         let opcode_byte = bus.read_u8(state.instruction_pointer())?;
 
-        let opcode = Opcode::try_from(opcode_byte).map_err(|_| Error::InvalidInstruction(ip, opcode_byte))?;
+        let opcode = Opcode::try_from(opcode_byte)
+            .map_err(|_| Error::InvalidInstruction(ip, opcode_byte))?;
 
         let instruction = match opcode {
             Opcode::Nop => Instruction::Nop,
@@ -174,8 +175,8 @@ impl Decoder {
             }
             Opcode::Prefix => {
                 let prefixed_byte = bus.read_u8(ip + 1)?;
-                let prefixed =
-                    Prefixed::try_from(prefixed_byte).map_err(|_| Error::InvalidInstruction(ip, prefixed_byte))?;
+                let prefixed = Prefixed::try_from(prefixed_byte)
+                    .map_err(|_| Error::InvalidInstruction(ip, prefixed_byte))?;
 
                 match prefixed {
                     Prefixed::Rlc

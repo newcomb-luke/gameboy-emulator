@@ -59,7 +59,7 @@ pub struct Ppu {
     off_display: Box<[Color32; TOTAL_PIXELS]>,
     current_cycles: usize,
     current_scanline: usize,
-    window_scanline: usize
+    window_scanline: usize,
 }
 
 impl Ppu {
@@ -362,13 +362,9 @@ impl Ppu {
         let screen_y = y;
         let y = y - obj_y;
 
-        let y = if obj.attributes().y_flip() {
-            15 - y
-        } else {
-            y
-        };
+        let y = if obj.attributes().y_flip() { 15 - y } else { y };
 
-        let color_ids = if y < 8{
+        let color_ids = if y < 8 {
             top_color_ids[y]
         } else {
             bottom_color_ids[y % 8]
