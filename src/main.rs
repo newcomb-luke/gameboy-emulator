@@ -1,6 +1,6 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")] // Hide console window on Windows in release
 
-use std::{path::PathBuf, time::Instant};
+use std::path::PathBuf;
 
 use clap::Parser;
 use eframe::{
@@ -98,7 +98,6 @@ fn main() -> eframe::Result {
 struct EmuApp {
     emulator: Emulator,
     display_texture: egui::TextureHandle,
-    last_frame_time: Instant,
     breakpoint_reached: bool,
     input_state: InputState,
     dpad: DPad,
@@ -106,10 +105,6 @@ struct EmuApp {
 
 impl eframe::App for EmuApp {
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
-        let now = Instant::now();
-        let delta = now - self.last_frame_time;
-        let fps = 1.0 / delta.as_secs_f32();
-
         ctx.input(|input| {
             let arrow_up = input.key_down(egui::Key::ArrowUp);
             let arrow_down = input.key_down(egui::Key::ArrowDown);
@@ -130,7 +125,7 @@ impl eframe::App for EmuApp {
                 DPadButtonState::new(arrow_up, arrow_down, arrow_left, arrow_right);
         });
 
-        self.show_gameboy(ctx, self.breakpoint_reached, fps);
+        self.show_gameboy(ctx, self.breakpoint_reached);
 
         self.input_state.dpad_state = self.dpad.state;
 
@@ -163,8 +158,6 @@ impl eframe::App for EmuApp {
         }
 
         ctx.request_repaint();
-
-        self.last_frame_time = now;
     }
 }
 
@@ -192,14 +185,13 @@ impl EmuApp {
                 display_image,
                 egui::TextureOptions::NEAREST,
             ),
-            last_frame_time: Instant::now(),
             breakpoint_reached: false,
             input_state: InputState::empty(),
             dpad: DPad::new(),
         }
     }
 
-    fn show_gameboy(&mut self, ctx: &egui::Context, breakpoint_reached: bool, fps: f32) {
+    fn show_gameboy(&mut self, ctx: &egui::Context, breakpoint_reached: bool) {
         let gameboy_outline = egui::containers::Frame {
             outer_margin: egui::Margin::same(10),
             inner_margin: egui::Margin::ZERO,
@@ -217,13 +209,9 @@ impl EmuApp {
                         ui.label("Breakpoint reached.");
                     }
 
-                    ui.label(format!("FPS: {:.2}", fps));
-
-                    let state = self.emulator.execution_state();
-                    ui.label(format!("{}", state));
+                    ui.add_space(20.0);
 
                     self.show_display(ui);
-
                     self.show_buttons(ui);
                 });
             });
