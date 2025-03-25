@@ -69,25 +69,25 @@ impl JoypadInput {
             InputSelection::Buttons => self.read_buttons(state),
             InputSelection::DPad => self.read_dpad(state),
             InputSelection::Both => self.read_buttons(state) & self.read_dpad(state),
-            InputSelection::None => 0,
+            InputSelection::None => 0b1100_1111,
         }
-    }
-
-    fn read_buttons(&self, state: InputState) -> u8 {
-        let mut value = 0;
-        value |= (if state.dpad_state.is_down() { 0 } else { 1 }) << 3;
-        value |= (if state.dpad_state.is_up() { 0 } else { 1 }) << 2;
-        value |= (if state.dpad_state.is_left() { 0 } else { 1 }) << 1;
-        value |= (if state.dpad_state.is_right() { 0 } else { 1 }) << 0;
-        value
     }
 
     fn read_dpad(&self, state: InputState) -> u8 {
         let mut value = 0;
-        value |= (if state.start_pressed { 0 } else { 1 }) << 3;
-        value |= (if state.select_pressed { 0 } else { 1 }) << 2;
-        value |= (if state.b_pressed { 0 } else { 1 }) << 1;
-        value |= (if state.a_pressed { 0 } else { 1 }) << 0;
+        value |= if state.dpad_state.is_down() { 0 } else { 1 << 3 };
+        value |= if state.dpad_state.is_up() { 0 } else { 1 << 2 };
+        value |= if state.dpad_state.is_left() { 0 } else { 1 << 1 };
+        value |= if state.dpad_state.is_right() { 0 } else { 1 << 0 };
+        value
+    }
+
+    fn read_buttons(&self, state: InputState) -> u8 {
+        let mut value = 0;
+        value |= if state.start_pressed { 0 } else { 1 << 3 };
+        value |= if state.select_pressed { 0 } else { 1 << 2 };
+        value |= if state.b_pressed { 0 } else { 1 << 1 };
+        value |= if state.a_pressed { 0 } else { 1 << 0 };
         value
     }
 }
