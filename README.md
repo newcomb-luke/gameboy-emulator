@@ -103,18 +103,20 @@ Both keyboard and click inputs are functional. It can fully execute the dmg-acid
         - [x] bit b3, r8
         - [x] res b3, r8
         - [x] set b3, r8
-- [ ] CPU Instructions Tests
+- [ ] Blargg's CPU Instructions Tests
     - [x] 01 - Special
-    - [ ] 02 - Interrupts
+    - [x] 02 - Interrupts
     - [x] 03 - op sp, hl
     - [x] 04 - op r, imm
-    - [ ] 05 - op rp
+    - [x] 05 - op rp
     - [x] 06 - ld r, r
     - [x] 07 - jr, jp, call, ret, rst
     - [x] 08 - Misc Instructions
     - [x] 09 - op r, r
     - [x] 10 - Bit Ops
     - [x] 11 - op a, (hl)
+    - [ ] All CPU Instructions test
+    - [ ] Instruction Timing
 - [ ] Memory Map
     - [x] Boot ROM
     - [x] Cartrige ROM Bank 0
@@ -129,6 +131,8 @@ Both keyboard and click inputs are functional. It can fully execute the dmg-acid
     - [x] OAM RAM
     - [x] HRAM
     - [x] Interrupt Enable Register
+- [ ] Memory Bank Controllers
+    - [ ] MBC1
 - [ ] GUI
     - [x] Window
     - [x] Device outline

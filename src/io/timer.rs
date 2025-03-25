@@ -118,7 +118,7 @@ impl Timer {
         let counter_increments = (self.cycles / current_cycles_value) as u8;
         self.cycles = self.cycles % current_cycles_value;
 
-        let (_, overflowed) = self
+        let (value, overflowed) = self
             .timer_counter
             .read()
             .overflowing_add(counter_increments);
@@ -126,8 +126,50 @@ impl Timer {
         if overflowed {
             // Reset the timer counter to the value in timer modulo
             self.timer_counter.write(self.timer_modulo.read());
+        } else {
+            self.timer_counter.write(value);
         }
 
         overflowed
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::io::timer::ClockSelect;
+
+    use super::Timer;
+
+    #[test]
+    fn test_timer_counter() {
+        let mut timer = Timer::new();
+        timer.timer_control.clock_select = ClockSelect::Every4MCycles;
+        timer.timer_control.enable = true;
+        assert_eq!(timer.timer_counter.read(), 0);
+        assert_eq!(timer.step(2), false);
+        assert_eq!(timer.timer_counter.read(), 0);
+        assert_eq!(timer.step(2), false);
+        assert_eq!(timer.timer_counter.read(), 1);
+    }
+
+    #[test]
+    fn test_timer_interrupt_fired_0() {
+        let mut timer = Timer::new();
+        timer.timer_control.clock_select = ClockSelect::Every4MCycles;
+        timer.timer_control.enable = true;
+        timer.timer_counter.write(0xFE);
+        assert_eq!(timer.step(4), false);
+        assert_eq!(timer.step(3), false);
+        assert_eq!(timer.step(1), true);
+    }
+
+    #[test]
+    fn test_timer_interrupt_fired_1() {
+        let mut timer = Timer::new();
+        timer.timer_control.clock_select = ClockSelect::Every4MCycles;
+        timer.timer_control.enable = true;
+        timer.timer_counter.write(0xFE);
+        assert_eq!(timer.step(4), false);
+        assert_eq!(timer.step(4), true);
     }
 }

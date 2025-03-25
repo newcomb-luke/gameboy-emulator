@@ -116,8 +116,8 @@ impl eframe::App for EmuApp {
             let arrow_left = input.key_down(egui::Key::ArrowLeft);
             let arrow_right = input.key_down(egui::Key::ArrowRight);
 
-            let a_button = input.key_down(egui::Key::Z);
-            let b_button = input.key_down(egui::Key::X);
+            let a_button = input.key_down(egui::Key::X);
+            let b_button = input.key_down(egui::Key::Z);
 
             let start_button = input.key_down(egui::Key::Enter);
             let select_button = input.key_down(egui::Key::Backspace);
@@ -138,7 +138,9 @@ impl eframe::App for EmuApp {
 
         let mut cycles_done = 0;
 
-        while cycles_done < 167_000 {
+        const CYCLES_PER_FRAME: usize = 69905;
+
+        while cycles_done < CYCLES_PER_FRAME {
             if let Some(_) = self.emulator.breakpoint_reached() {
                 self.breakpoint_reached = true;
                 break;

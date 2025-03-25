@@ -54,13 +54,10 @@ impl Cpu {
 
         if self.interrupt_enable_next {
             self.state.set_interrupts_enabled(true);
-            println!("Got here too");
             self.interrupt_enable_next = false;
         }
 
         if self.after_ei {
-            println!("Got here");
-            // self.state.set_interrupts_enabled(true);
             self.interrupt_enable_next = true;
             self.after_ei = false;
         }

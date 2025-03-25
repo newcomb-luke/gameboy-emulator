@@ -56,6 +56,10 @@ impl Cartridge {
 
         let header = CartridgeHeaderReader::read(&bank0, &remaining_rom_bytes)?;
 
+        if header.cartridge_type() != header::CartridgeType::RomOnly {
+            panic!("Just ROM-only cartridges are currently supported, cartridge was {:?}", header.cartridge_type());
+        }
+
         if (remaining_rom_bytes.len() % BANK_SIZE) != 0 {
             panic!("ROM doesn't have a size in a multiple of banks, possibly a not yet supported format: {}", (remaining_rom_bytes.len() + BANK_SIZE));
         }
