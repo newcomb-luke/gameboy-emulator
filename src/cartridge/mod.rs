@@ -11,7 +11,7 @@ const BANK_SIZE: usize = 16 * 1024;
 
 #[derive(Debug, Clone)]
 pub struct Cartridge {
-    bank0: [u8; BANK_SIZE],
+    bank0: Box<[u8; BANK_SIZE]>,
     extra_banks: Vec<[u8; BANK_SIZE]>,
     header: CartridgeHeader,
     bank_selected: usize,
@@ -19,7 +19,7 @@ pub struct Cartridge {
 
 impl Cartridge {
     pub fn empty() -> Self {
-        let bank0 = [0u8; BANK_SIZE];
+        let bank0 = Box::new([0u8; BANK_SIZE]);
         let bank1 = [0u8; BANK_SIZE];
         let header = CartridgeHeader::new(
             "EMPTY",
@@ -46,15 +46,17 @@ impl Cartridge {
     }
 
     pub fn read(reader: &mut impl Read) -> Result<Self, Error> {
-        let mut bank0 = [0u8; BANK_SIZE];
-        reader.read_exact(&mut bank0).map_err(|e| Error::from(e))?;
+        let mut bank0 = Box::new([0u8; BANK_SIZE]);
+        reader.read_exact(bank0.as_mut_slice()).map_err(|e| Error::from(e))?;
 
         let mut remaining_rom_bytes = Vec::new();
         reader
             .read_to_end(&mut remaining_rom_bytes)
             .map_err(|e| Error::from(e))?;
 
-        let header = CartridgeHeaderReader::read(&bank0, &remaining_rom_bytes)?;
+        let header = CartridgeHeaderReader::read(bank0.as_slice(), &remaining_rom_bytes)?;
+
+        println!("{:#?}", header);
 
         if header.cartridge_type() != header::CartridgeType::RomOnly {
             return Err(Error::UnsupportedCartridgeType);

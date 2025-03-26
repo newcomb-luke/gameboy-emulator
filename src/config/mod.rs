@@ -1,44 +1,77 @@
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
-use directories::ProjectDirs;
+use preferences::{AppInfo, Preferences};
 use serde::{Deserialize, Serialize};
 
-#[derive(Serialize, Deserialize)]
-pub struct Config {
-    recents: Vec<PathBuf>
+const APP_INFO: AppInfo = AppInfo { name: "Dotra", author: "Luke N" };
+const RECENTS_KEY: &str = "recents";
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct RomEntry {
+    name: String,
+    path: PathBuf
 }
 
-impl Default for Config {
-    fn default() -> Self {
+impl RomEntry {
+    pub fn new(name: impl Into<String>, path: impl Into<PathBuf>) -> Self {
         Self {
-            recents: Vec::new()
+            name: name.into(),
+            path: path.into()
         }
+    }
+
+    pub fn name(&self) -> &String {
+        &self.name
+    }
+
+    pub fn path(&self) -> &Path {
+        &self.path
     }
 }
 
-pub fn read_config() -> Config {
-    if let Some(dirs) = ProjectDirs::from("xyz", "Luke N", "GameBoy Emulator") {
-        let config_dir_path = dirs.config_local_dir();
-        let config_file_path = config_dir_path.join("config.json");
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct Recents {
+    roms: Vec<RomEntry>
+}
 
-        if config_file_path.exists() {
-            if let Ok(config_file) = std::fs::File::open(config_file_path) {
-                if let Ok(config) = serde_json::from_reader(config_file) {
-                    config
-                } else {
-                    Config::default()
-                }
-            } else {
-                Config::default()
-            }
-        } else {
-            if let Ok(config_file) = std::fs::File::open(config_file_path) {
-                todo!()
-            }
-
-            todo!()
-        }
-    } else {
-        Config::default()
+impl Recents {
+    pub fn new() -> Self {
+        Self { roms: vec![] }
     }
+
+    pub fn roms(&self) -> &Vec<RomEntry> {
+        &self.roms
+    }
+
+    pub fn add_if_not_present(&mut self, rom: RomEntry) {
+        if self.roms.iter().find(|e| e.path == rom.path).is_none() {
+            self.roms.push(rom);
+        }
+    }
+
+    pub fn remove_missing(&mut self) {
+        self.roms.retain(|e| e.path.exists());
+    }
+}
+
+pub fn get_recents() -> Recents {
+    if let Ok(mut recents) = Recents::load(&APP_INFO, RECENTS_KEY) {
+        // Remove any ROMs which may have been moved/deleted since last opened
+        recents.remove_missing();
+        
+        // Re-save it in case anything changed
+        recents.save(&APP_INFO, RECENTS_KEY).unwrap();
+
+        recents
+    } else {
+        let empty = Recents::new();
+
+        empty.save(&APP_INFO, RECENTS_KEY).unwrap();
+
+        empty
+    }
+}
+
+pub fn save_recents(recents: &Recents) {
+    recents.save(&APP_INFO, RECENTS_KEY).unwrap()
 }

@@ -4,7 +4,7 @@ use eframe::{egui::{self, load::SizedTexture, text::LayoutJob, Color32, ColorIma
 use native_dialog::{FileDialog, MessageDialog};
 use widgets::{ABButton, DPad, StartButton};
 
-use crate::{boot::BootRom, ppu::{DISPLAY_SIZE_PIXELS, OFF_COLOR}, read_boot_rom, read_cartridge, DPadButtonState, Emulator, InputState};
+use crate::{boot::BootRom, config::{get_recents, save_recents, Recents, RomEntry}, ppu::{DISPLAY_SIZE_PIXELS, OFF_COLOR}, read_boot_rom, read_cartridge, DPadButtonState, Emulator, InputState};
 
 mod widgets;
 
@@ -39,6 +39,7 @@ pub struct EmuApp {
     input_state: InputState,
     dpad: DPad,
     boot_rom: BootRom,
+    recents: Recents
 }
 
 impl eframe::App for EmuApp {
@@ -96,6 +97,8 @@ impl EmuApp {
             style.interaction.selectable_labels = false;
         });
 
+        let recents = get_recents();
+
         Self {
             emulator,
             display_texture: cc.egui_ctx.load_texture(
@@ -107,6 +110,7 @@ impl EmuApp {
             input_state: InputState::empty(),
             dpad: DPad::new(),
             boot_rom,
+            recents
         }
     }
 
@@ -148,8 +152,15 @@ impl EmuApp {
                     let path = choose_cartridge_file_with_dialog();
 
                     if let Some(path) = path {
-                        match read_cartridge(path) {
+                        match read_cartridge(&path) {
                             Ok(cartridge) => {
+                                let name = cartridge.header().title();
+                                let entry = RomEntry::new(name, path);
+
+                                self.recents.add_if_not_present(entry);
+                                save_recents(&self.recents);
+
+                                self.emulator = None;
                                 self.emulator = Some(Emulator::new(self.boot_rom, cartridge));
                             },
                             Err(e) => {
@@ -170,16 +181,37 @@ impl EmuApp {
                             }
                         }
                     }
+
+                    ui.close_menu();
                 }
-                ui.menu_button("Open Recent", |ui| {
-                    if ui.button("Tetris").clicked() {
-                        println!("Tetris");
-                    }
-                    if ui.button("Greed").clicked() {
-                        println!("Greed");
-                    }
+
+                let recents_menu_enabled = !self.recents.roms().is_empty();
+                ui.add_enabled_ui(recents_menu_enabled, |ui| {
+                    ui.menu_button("Open Recent", |ui| {
+                        for recent in self.recents.roms() {
+                            let file_name = recent.path().file_name().unwrap().to_string_lossy();
+                            if ui.button(format!("{} - {}", recent.name(), file_name)).clicked() {
+                                match read_cartridge(recent.path()) {
+                                    Ok(cartridge) => {
+                                        self.emulator = None;
+                                        self.emulator = Some(Emulator::new(self.boot_rom, cartridge));
+                                    },
+                                    Err(_) => {
+                                        let error_text = format!("Unable to read cartridge `{}` at {}", recent.name(), recent.path().display());
+                                        MessageDialog::new()
+                                            .set_title("Error reading cartridge")
+                                            .set_text(&error_text)
+                                            .set_type(native_dialog::MessageType::Error)
+                                            .show_alert().unwrap();
+                                    }
+                                }
+
+                                ui.close_menu();
+                            }
+                        }
+                    });
                 });
-                if ui.button("Use Boot ROM").clicked() {
+                if ui.button("Choose Boot ROM").clicked() {
                     let path = choose_boot_rom_file_with_dialog();
 
                     if let Some(path) = path {
@@ -196,6 +228,8 @@ impl EmuApp {
                             }
                         }
                     }
+
+                    ui.close_menu();
                 }
             });
         });

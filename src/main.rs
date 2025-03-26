@@ -62,7 +62,7 @@ fn main() -> eframe::Result {
     };
 
     eframe::run_native(
-        "gameboy-emulator",
+        "Dotra Emulator",
         options,
         Box::new(|cc| {
             egui_extras::install_image_loaders(&cc.egui_ctx);
