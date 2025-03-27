@@ -1,10 +1,21 @@
 use std::path::PathBuf;
 
-use eframe::{egui::{self, load::SizedTexture, text::LayoutJob, Color32, ColorImage, CornerRadius, FontId, Label, Margin, Pos2, Rect, Shadow, TextFormat, Ui, Vec2}, epaint::text::{FontInsert, InsertFontFamily}};
+use eframe::{
+    egui::{
+        self, load::SizedTexture, text::LayoutJob, Color32, ColorImage, CornerRadius, FontId,
+        Label, Margin, Pos2, Rect, Shadow, TextFormat, Ui, Vec2,
+    },
+    epaint::text::{FontInsert, InsertFontFamily},
+};
 use native_dialog::{FileDialog, MessageDialog};
 use widgets::{ABButton, DPad, StartButton};
 
-use crate::{boot::BootRom, config::{get_recents, save_recents, Recents, RomEntry}, ppu::{DISPLAY_SIZE_PIXELS, OFF_COLOR}, read_boot_rom, read_cartridge, DPadButtonState, Emulator, InputState};
+use crate::{
+    boot::BootRom,
+    config::{get_recents, save_recents, Recents, RomEntry},
+    ppu::{DISPLAY_SIZE_PIXELS, OFF_COLOR},
+    read_boot_rom, read_cartridge, DPadButtonState, Emulator, InputState,
+};
 
 mod widgets;
 
@@ -39,7 +50,7 @@ pub struct EmuApp {
     input_state: InputState,
     dpad: DPad,
     boot_rom: BootRom,
-    recents: Recents
+    recents: Recents,
 }
 
 impl eframe::App for EmuApp {
@@ -71,6 +82,12 @@ impl eframe::App for EmuApp {
         self.show_gameboy(ctx, self.breakpoint_reached);
 
         self.run_emulator();
+
+        let window_scale_factor = ctx.native_pixels_per_point().unwrap_or(1.0);
+        ctx.send_viewport_cmd(egui::ViewportCommand::MinInnerSize(Vec2::from([
+            SCALED_GAMEBOY_WIDTH / window_scale_factor,
+            SCALED_GAMEBOY_HEIGHT / window_scale_factor,
+        ])));
 
         ctx.request_repaint();
     }
@@ -110,7 +127,7 @@ impl EmuApp {
             input_state: InputState::empty(),
             dpad: DPad::new(),
             boot_rom,
-            recents
+            recents,
         }
     }
 
@@ -256,6 +273,9 @@ impl EmuApp {
                     ui.add_space(20.0);
 
                     self.show_display(ui);
+
+                    // ui.add(egui::Image::new(egui::include_image!("images/logo.png")));
+
                     self.show_buttons(ui);
                 });
             });
@@ -264,10 +284,7 @@ impl EmuApp {
     fn show_display(&mut self, ui: &mut Ui) {
         let display_image = egui::Image::new(SizedTexture::new(
             &self.display_texture,
-            [
-                DISPLAY_HEIGHT * (SCALE_FACTOR + 2.0),
-                DISPLAY_WIDTH * (SCALE_FACTOR + 2.0),
-            ],
+            [DISPLAY_HEIGHT * SCALE_FACTOR, DISPLAY_WIDTH * SCALE_FACTOR],
         ));
 
         egui::Frame::default()

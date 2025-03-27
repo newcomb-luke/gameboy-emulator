@@ -5,7 +5,9 @@ use std::path::PathBuf;
 use clap::Parser;
 use eframe::egui;
 use gameboy_emulator::{
-    app::{EmuApp, SCALED_GAMEBOY_HEIGHT, SCALED_GAMEBOY_WIDTH}, boot::DEFAULT_BOOT_ROM, read_boot_rom, read_cartridge, Emulator
+    app::{EmuApp, SCALED_GAMEBOY_HEIGHT, SCALED_GAMEBOY_WIDTH},
+    boot::DEFAULT_BOOT_ROM,
+    read_boot_rom, read_cartridge, Emulator,
 };
 
 #[derive(Debug, Parser)]
@@ -58,6 +60,7 @@ fn main() -> eframe::Result {
             .with_maximize_button(false)
             .with_minimize_button(false)
             .with_inner_size([SCALED_GAMEBOY_WIDTH, SCALED_GAMEBOY_HEIGHT]),
+        centered: true,
         ..Default::default()
     };
 
