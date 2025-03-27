@@ -203,18 +203,18 @@ Both keyboard and click inputs are functional. It can fully execute the dmg-acid
     - [ ] add sp e timing
     - [ ] boot div dmgABCmgb
     - [ ] boot hwio dmgABCmgb 
-    - [ ] boot regs dmgABC
+    - [x] boot regs dmgABC
     - [ ] call timing
     - [ ] call timing2
     - [ ] call cc_timing
     - [ ] call cc_timing2
-    - [ ] di timing GS
+    - [x] di timing GS
     - [ ] div timing
-    - [ ] ei sequence
-    - [ ] ei timing
-    - [ ] halt ime0 ei
+    - [x] ei sequence
+    - [x] ei timing
+    - [x] halt ime0 ei
     - [ ] halt ime0 nointr_timing
-    - [ ] halt ime1 timing
+    - [x] halt ime1 timing
     - [ ] halt ime1 timing2 GS
     - [ ] if ie registers
     - [ ] intr timing
@@ -226,7 +226,7 @@ Both keyboard and click inputs are functional. It can fully execute the dmg-acid
     - [ ] oam dma timing
     - [ ] pop timing
     - [ ] push timing
-    - [ ] rapid di ei
+    - [x] rapid di ei
     - [ ] ret timing
     - [ ] ret cc timing
     - [ ] reti timing
@@ -250,7 +250,7 @@ Both keyboard and click inputs are functional. It can fully execute the dmg-acid
         - [ ] tim00 div trigger
         - [ ] tim00
         - [ ] tim01 div trigger
-        - [ ] tim01
+        - [x] tim01
         - [ ] tim10 div trigger
         - [ ] tim10
         - [ ] tim11 div trigger
