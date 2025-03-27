@@ -274,7 +274,12 @@ impl EmuApp {
 
                     self.show_display(ui);
 
-                    // ui.add(egui::Image::new(egui::include_image!("images/logo.png")));
+                    ui.add_space(4.0);
+
+                    ui.horizontal(|ui| {
+                        ui.add_space(40.0);
+                        ui.add(egui::Image::new(egui::include_image!("images/logo.png")).fit_to_original_size(0.2));
+                    });
 
                     self.show_buttons(ui);
                 });
@@ -288,7 +293,7 @@ impl EmuApp {
         ));
 
         egui::Frame::default()
-            .outer_margin(Margin::same(20))
+            .outer_margin(Margin::symmetric(20, 0))
             .inner_margin(Margin::same(20))
             .shadow(DROP_SHADOW)
             .fill(DISPLAY_FRAME_COLOR)
