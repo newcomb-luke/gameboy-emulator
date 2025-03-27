@@ -21,8 +21,8 @@ mod widgets;
 
 const GAMEBOY_HEIGHT: f32 = 148.0; // mm
 const GAMEBOY_WIDTH: f32 = 90.0; // mm
-const DISPLAY_HEIGHT: f32 = 47.0; // mm
-const DISPLAY_WIDTH: f32 = 43.0; // mm
+const DISPLAY_HEIGHT: f32 = 47.0 * 1.3; // Supposed to be 47 mm
+const DISPLAY_WIDTH: f32 = 43.0 * 1.3; // Supposed to be 43 mm
 const SCALE_FACTOR: f32 = 6.0;
 pub const SCALED_GAMEBOY_HEIGHT: f32 = GAMEBOY_HEIGHT * SCALE_FACTOR;
 pub const SCALED_GAMEBOY_WIDTH: f32 = GAMEBOY_WIDTH * SCALE_FACTOR;
