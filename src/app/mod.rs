@@ -267,7 +267,7 @@ impl EmuApp {
             .show(ctx, |ui| {
                 ui.vertical_centered(|ui| {
                     if breakpoint_reached {
-                        ui.label("Breakpoint reached.");
+                        ui.label(format!("Breakpoint reached.\n{}", self.emulator.as_ref().unwrap().execution_state()));
                     }
 
                     ui.add_space(20.0);

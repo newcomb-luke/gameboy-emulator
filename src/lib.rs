@@ -27,7 +27,7 @@ impl Emulator {
         let bus = Bus::new(boot_rom, cartridge);
 
         Self {
-            cpu: Cpu::new(bus, false),
+            cpu: Cpu::new(bus, true),
             breakpoints: Vec::new(),
         }
     }

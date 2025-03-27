@@ -199,3 +199,95 @@ Both keyboard and click inputs are functional. It can fully execute the dmg-acid
     - [x] Global Checksum
     - [x] Header Checksum Calculation
     - [x] Global Checksum Calculation (Optional)
+- [ ] Mooneye Test ROMs
+    - [ ] add sp e timing
+    - [ ] boot div dmgABCmgb
+    - [ ] boot hwio dmgABCmgb 
+    - [ ] boot regs dmgABC
+    - [ ] call timing
+    - [ ] call timing2
+    - [ ] call cc_timing
+    - [ ] call cc_timing2
+    - [ ] di timing GS
+    - [ ] div timing
+    - [ ] ei sequence
+    - [ ] ei timing
+    - [ ] halt ime0 ei
+    - [ ] halt ime0 nointr_timing
+    - [ ] halt ime1 timing
+    - [ ] halt ime1 timing2 GS
+    - [ ] if ie registers
+    - [ ] intr timing
+    - [ ] jp timing
+    - [ ] jp cc timing
+    - [ ] ld hl sp e timing
+    - [ ] oam dma restart
+    - [ ] oam dma start
+    - [ ] oam dma timing
+    - [ ] pop timing
+    - [ ] push timing
+    - [ ] rapid di ei
+    - [ ] ret timing
+    - [ ] ret cc timing
+    - [ ] reti timing
+    - [ ] reti intr timing
+    - [ ] rst timing
+    - [ ] Bits
+        - [ ] mem oam
+        - [x] reg f
+        - [ ] unused hwio GS
+    - [x] Instructions
+        - [x] daa
+    - [ ] Interrupt Handling
+        - [ ] ei push
+    - [ ] OAM DMA
+        - [ ] basic
+        - [x] reg read
+        - [ ] sources GS
+    - [ ] Timer
+        - [ ] div write
+        - [ ] rapid toggle
+        - [ ] tim00 div trigger
+        - [ ] tim00
+        - [ ] tim01 div trigger
+        - [ ] tim01
+        - [ ] tim10 div trigger
+        - [ ] tim10
+        - [ ] tim11 div trigger
+        - [ ] tim11
+        - [ ] tima reload
+        - [ ] tima write reloading
+        - [ ] tma write reloading
+    - [ ] MBC1
+        - [ ] bits bank1
+        - [ ] bits bank2
+        - [ ] bits mode
+        - [ ] bits ramg
+        - [ ] rom 512Kb
+        - [ ] rom 1Mb
+        - [ ] rom 2Mb
+        - [ ] rom 4Mb
+        - [ ] rom 8Mb
+        - [ ] rom 16Mb
+        - [ ] rom 64Kb
+        - [ ] rom 256Kb
+        - [ ] multicart rom 8Mb
+    - [ ] MBC2
+        - [ ] bits ramg
+        - [ ] bits romb
+        - [ ] bits unused
+        - [ ] rom 512Kb
+        - [ ] rom 1Mb
+        - [ ] rom 2Mb
+        - [ ] ram
+    - [ ] MBC5
+        - [ ] rom 512Kb
+        - [ ] rom 1Mb
+        - [ ] rom 2Mb
+        - [ ] rom 4Mb
+        - [ ] rom 8Mb
+        - [ ] rom 16Mb
+        - [ ] rom 32Mb
+        - [ ] rom 64Mb
+    - [ ] Manual
+        - [ ] sprite priority
